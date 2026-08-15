@@ -53,6 +53,7 @@ nav:
       - Risk bands: concepts/bands.md
   - How-to:
       - Reason codes: howto/reason-codes.md
+      - Visualize decisions: howto/visualize.md
       - Zero-churn recalibration: howto/recalibrate.md
       - Deploy (runtime, SQL, COBOL): howto/deploy.md
       - Validate before deploying: howto/validate.md

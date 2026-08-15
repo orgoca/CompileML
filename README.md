@@ -7,6 +7,14 @@
 
 **Compile tree-ensemble models into deterministic, auditable decision artifacts.**
 
+<p align="center">
+  <img src="docs/assets/decision_waterfall.svg" width="760"
+       alt="Decision waterfall: baseline plus per-feature integer impacts summing exactly to the final score and band">
+</p>
+<p align="center"><sub>One decision, drawn from its own integers — the bars sum to the score because the
+reconciliation identity says they must. Rendered by <code>compileml.viz.waterfall_svg</code>
+from the repo's committed reference artifact, with zero dependencies.</sub></p>
+
 CompileML separates *training* a credit-risk model from *running* one. Train with
 whatever you like — XGBoost, LightGBM, scikit-learn, or a neural network distilled
 into a whitebox — then compile the decision into a single hashed JSON artifact
@@ -141,6 +149,24 @@ REASON_DICTIONARY = {
 Features without an entry still work — they fall back to generic messages —
 but generic messages are not adverse-action grade, and the tooling will keep
 telling you so.
+
+## Seeing decisions
+
+`compileml[viz]` adds payload-driven plots — they draw the integers `decide()`
+emitted, never a recomputation, so a chart can never disagree with the deployed
+decision:
+
+```python
+from compileml.viz import waterfall, decision_drivers, band_drivers, band_ladder
+
+waterfall(decide(artifact, row, include_contributions=True))   # one decision, audited
+decision_drivers(sample_decisions, y=y_sample)                 # population drivers
+band_drivers(sample_decisions, y=y_sample)                     # drivers per band
+band_ladder(score_decisions, y_sample)                         # bad-rate monotonicity
+```
+
+`waterfall_svg()` renders the same waterfall with the standard library alone —
+the image above is its output.
 
 ## The validation framework
 

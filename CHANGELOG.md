@@ -26,3 +26,8 @@ inside each artifact (`schema_version`).
   (score + band; artifact integers verbatim).
 - `compileml` CLI: compile, inspect, verify, score, validate, export.
 - Benchmarks reproducing every README number; docs site; executable examples.
+- Visualization extra (`compileml[viz]`): payload-driven `waterfall`,
+  `decision_drivers`, `band_drivers`, and `band_ladder` (matplotlib), plus a
+  dependency-free `waterfall_svg`. Plots draw the deployed integers and never
+  recompute them; the waterfall's segments are tested against the spec §7.4
+  identity exactly.
