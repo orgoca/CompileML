@@ -182,22 +182,85 @@ def test_waterfall_renders(decision):
     mpl.pyplot.close(fig)
 
 
-def test_decision_drivers_renders(population):
+def test_decision_drivers_original_geometry(population):
+    """Pin the authored beeswarm design: sizes 6/7 with bad-on-top, dashed
+    zero line, exact title/xlabel/legend text, reason codes as y labels."""
     from compileml.viz import decision_drivers
 
     decisions, y = population
-    fig, ax = decision_drivers(decisions, y=y, top=3)
-    assert len(ax.collections) > 0
+    fig, ax = decision_drivers(decisions, y=y)
+
+    sizes = {int(c.get_sizes()[0]) for c in ax.collections if len(c.get_sizes())}
+    assert {6, 7} <= sizes  # good s=6, bad s=point_size+1
+    assert 140 in sizes  # mean-impact tick, s=140
+
+    zero_lines = [ln for ln in ax.lines if ln.get_linestyle() == "--"]
+    assert zero_lines and zero_lines[0].get_alpha() == 0.35
+
+    assert ax.get_title(loc="left") == "Decision Drivers (Sorted by Mean Abs Impact)"
+    assert ax.get_xlabel() == "Delta Latent (Whitebox)"
+    legend_texts = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert legend_texts == ["Repayment (y=0)", "Default (y=1)", "Mean Impact"]
+
+    # y labels are reason CODES from the artifact dictionary
+    labels = {t.get_text() for t in ax.get_yticklabels()}
+    assert "F0" in labels  # conftest artifact: f0 -> code "F0"
     mpl.pyplot.close(fig)
 
 
-def test_band_drivers_renders(population):
-    from compileml.viz import band_drivers
+def test_decision_drivers_impact_mode_without_y(population):
+    from compileml.viz import decision_drivers
+
+    decisions, _ = population
+    fig, ax = decision_drivers(decisions)  # color_by="auto" -> impact mode
+    legend_texts = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert legend_texts == ["Risk-decreasing impact", "Risk-increasing impact", "Mean Impact"]
+    mpl.pyplot.close(fig)
+
+
+def test_pile_jitter_only_breaks_piles():
+    import numpy as np
+
+    from compileml.viz.plots import _pile_jitter
+
+    codes = np.array(["A"] * 5 + ["B"], dtype=object)
+    impacts = np.array([0.1] * 5 + [0.3])
+    out = _pile_jitter(codes, impacts, np.random.default_rng(0))
+    assert out[5] == 0.3  # singleton pile: untouched
+    width = min(0.18, 0.06 * np.sqrt(5))
+    assert np.all(np.abs(out[:5] - 0.1) <= width)  # pile spread, bounded
+    assert np.any(out[:5] != 0.1)
+
+
+def test_band_conditioned_drivers_original_design(population):
+    from compileml.viz import band_conditioned_decision_drivers, band_drivers
+
+    assert band_drivers is band_conditioned_decision_drivers  # alias kept
 
     decisions, y = population
-    fig, axes = band_drivers(decisions, y=y, top_k=3, cols=2)
+    fig, axes = band_conditioned_decision_drivers(decisions, y=y, cols=2)
     assert axes.size >= len({d["band"] for d in decisions})
+
+    panel_titles = {ax.get_title(loc="left") for ax in axes if ax.get_title(loc="left")}
+    assert any(t.startswith("Band G") for t in panel_titles)
+    assert fig.get_suptitle() == "Decision Drivers - Band Conditioned"
+    fig_texts = [t.get_text() for t in fig.texts]
+    assert any("deterministic pairwise-interaction attribution" in t for t in fig_texts)
+    legend_texts = [t.get_text() for t in fig.legends[0].get_texts()]
+    assert legend_texts == [
+        "Observed repayment (y=0)",
+        "Observed default (y=1)",
+        "Mean Impact",
+    ]
     mpl.pyplot.close(fig)
+
+
+def test_band_conditioned_target_band_validates(population):
+    from compileml.viz import band_conditioned_decision_drivers
+
+    decisions, y = population
+    with pytest.raises(ValueError, match="not found"):
+        band_conditioned_decision_drivers(decisions, y=y, target_band="G99")
 
 
 def test_band_ladder_renders(population):
