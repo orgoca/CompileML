@@ -60,6 +60,7 @@ dev = [
 docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
+    "matplotlib>=3.7",  # api reference collects compileml.viz.plots
 ]
 
 [project.urls]

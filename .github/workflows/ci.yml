@@ -61,7 +61,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e .[dev] nbclient nbformat ipykernel
+      - run: pip install -e .[dev,viz] nbclient nbformat ipykernel
       - name: Execute every example notebook
         run: python .github/scripts/run_notebooks.py
 

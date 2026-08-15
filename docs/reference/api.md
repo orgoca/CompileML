@@ -45,3 +45,15 @@
 ::: compileml.export.export_sql
 
 ::: compileml.export.export_cobol
+
+## Visualization (`compileml[viz]`)
+
+::: compileml.viz.plots.waterfall
+
+::: compileml.viz.plots.decision_drivers
+
+::: compileml.viz.plots.band_drivers
+
+::: compileml.viz.plots.band_ladder
+
+::: compileml.viz.svg.waterfall_svg
