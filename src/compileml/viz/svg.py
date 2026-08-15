@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from html import escape
 
+from compileml.viz._arrow import TICK_HALF, arrow_points, tri_frac
 from compileml.viz._data import waterfall_segments
 
 _FILL = {
@@ -47,15 +48,20 @@ def waterfall_svg(
     for seg in segments:
         cursor += seg["latent_delta"]
         points.append(cursor)
-    lo, hi = min(points), max(points)
-    span = (hi - lo) or 1.0
-    lo -= 0.06 * span
-    hi += 0.06 * span
+    lo_data, hi_data = min(points), max(points)
+    span = (hi_data - lo_data) or 1.0
+    lo = lo_data - 0.06 * span
+    hi = hi_data + 0.06 * span
 
     plot_left, plot_right = LABEL_W, width - PAD
 
     def x(value: float) -> float:
         return plot_left + (value - lo) / (hi - lo) * (plot_right - plot_left)
+
+    # Arrow-head scale: the PIXEL width the actual data walk spans —
+    # (x_range / view_range) * bar_area_width. Passing data units here is
+    # the classic porting bug (heads collapse to min_frac).
+    scale_px = (hi_data - lo_data) / (hi - lo) * (plot_right - plot_left)
 
     n_rows = len(segments) + 2
     height = PAD + 26 + n_rows * ROW_H + PAD
@@ -102,17 +108,27 @@ def waterfall_svg(
         row_text(i, seg["label"])
         delta = seg["latent_delta"]
         x0, x1 = x(cursor), x(cursor + delta)
-        left, bar_width = (x0, x1 - x0) if x1 >= x0 else (x1, x0 - x1)
-        put(
-            f'<rect x="{left:.1f}" y="{top + i * ROW_H + 4}" width="{max(bar_width, 1.0):.1f}" '
-            f'height="20" fill="{_fill(seg)}" rx="2"/>'
-        )
+        y_mid = top + i * ROW_H + 14
+        abs_px = abs(x1 - x0)
+        polygon = arrow_points(x0, x1, y_mid, tri_len=abs_px * tri_frac(abs_px, scale_px))
+        if polygon is None:
+            # Dead-zone: a triangle this narrow renders as a smear — 6 px tick.
+            put(
+                f'<line x1="{x0:.1f}" y1="{y_mid - TICK_HALF:.1f}" '
+                f'x2="{x0:.1f}" y2="{y_mid + TICK_HALF:.1f}" '
+                f'stroke="{_fill(seg)}" stroke-width="1.5"/>'
+            )
+        else:
+            # One 7-point polygon: body + head in a single path, no stroke
+            # (a stroke rounds the barb corners at small sizes).
+            point_text = " ".join(f"{px:.1f},{py:.1f}" for px, py in polygon)
+            put(f'<polygon points="{point_text}" fill="{_fill(seg)}" opacity="0.92"/>')
         note = f"{delta:+.4f}"
         if seg["impact_int"] is not None:
             note += f" ({seg['impact_int']:+d})"
         anchor, side = (x1 + 6, "start") if delta >= 0 else (x1 - 6, "end")
         put(
-            f'<text x="{anchor:.1f}" y="{top + i * ROW_H + 18}" font-size="10" '
+            f'<text x="{anchor:.1f}" y="{y_mid + 4}" font-size="10" '
             f'text-anchor="{side}" fill="#333">{note}</text>'
         )
         cursor += delta

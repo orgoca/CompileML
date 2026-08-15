@@ -11,7 +11,9 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Polygon
 
+from compileml.viz._arrow import DEAD_ZONE, HALF_H, OVERHANG, TICK_HALF, arrow_points, tri_frac
 from compileml.viz._data import band_table, driver_table, waterfall_segments
 
 COLORS = {
@@ -65,6 +67,18 @@ def waterfall(
     else:
         fig = ax.figure
 
+    # Fix the view first: the arrow-head fraction is computed in PIXELS
+    # (data-space widths are the classic porting bug), so the data→pixel
+    # mapping must be final before any polygon is built.
+    cursor, walk = base, [base, final]
+    for seg in segments:
+        cursor += seg["latent_delta"]
+        walk.append(cursor)
+    lo_data, hi_data = min(walk), max(walk)
+    span = (hi_data - lo_data) or 1.0
+    ax.set_xlim(min(lo_data - 0.10 * span, 0.0), hi_data + 0.16 * span)
+    ax.set_ylim(-0.6, n_rows - 0.4)
+
     y = n_rows - 1
     ax.plot([base, base], [y - 0.4, -0.6], color=colors["base"], lw=0.8, ls=":", zorder=1)
     ax.scatter([base], [y], color=colors["base"], marker="D", zorder=3)
@@ -72,30 +86,22 @@ def waterfall(
     ticks, tick_labels = [y], ["Baseline"]
 
     cursor = base
+    rows = []
     for seg in segments:
         y -= 1
-        delta = seg["latent_delta"]
-        ax.barh(
-            y,
-            delta,
-            left=cursor,
-            height=0.62,
-            color=_segment_color(seg, colors),
-            edgecolor="white",
-            zorder=2,
-        )
-        note = f"{delta:+.4f}"
+        rows.append((y, seg, cursor))
+        note = f"{seg['latent_delta']:+.4f}"
         if seg["impact_int"] is not None:
             note += f"  ({seg['impact_int']:+d})"
-        anchor = cursor + delta
+        anchor = cursor + seg["latent_delta"]
         ax.annotate(
-            f"  {note}" if delta >= 0 else f"{note}  ",
+            f"  {note}" if seg["latent_delta"] >= 0 else f"{note}  ",
             (anchor, y),
             va="center",
-            ha="left" if delta >= 0 else "right",
+            ha="left" if seg["latent_delta"] >= 0 else "right",
             fontsize=8,
         )
-        cursor += delta
+        cursor += seg["latent_delta"]
         ticks.append(y)
         tick_labels.append(seg["label"])
 
@@ -115,7 +121,44 @@ def waterfall(
             f"  ·  PD {data['pd']:.4f}" if data.get("pd") is not None else ""
         )
     ax.set_title(title, loc="left", fontsize=10, fontweight="bold")
+
+    # Realize the layout, then build the arrows with true pixel geometry.
     fig.tight_layout()
+    fig.canvas.draw()
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
+    px_per_x = ax.bbox.width / (xlim[1] - xlim[0])
+    px_per_y = ax.bbox.height / (ylim[1] - ylim[0])
+    scale_px = (hi_data - lo_data) * px_per_x  # pixel width of the data walk
+    half_h = HALF_H / px_per_y
+    overhang = OVERHANG / px_per_y
+
+    for row_y, seg, x_start in rows:
+        delta = seg["latent_delta"]
+        abs_px = abs(delta) * px_per_x
+        color = _segment_color(seg, colors)
+        if abs_px < DEAD_ZONE:
+            tick_half = TICK_HALF / px_per_y
+            ax.plot(
+                [x_start, x_start],
+                [row_y - tick_half, row_y + tick_half],
+                color=color,
+                lw=1.5,
+                zorder=2,
+            )
+            continue
+        tri_len = abs(delta) * tri_frac(abs_px, scale_px)
+        points = arrow_points(
+            x_start,
+            x_start + delta,
+            row_y,
+            half_h=half_h,
+            overhang=overhang,
+            tri_len=tri_len,
+            dead_zone=0.0,  # pixel dead-zone already checked above (abs_px)
+        )
+        ax.add_patch(
+            Polygon(points, closed=True, facecolor=color, alpha=0.92, edgecolor="none", zorder=2)
+        )
     return fig, ax
 
 
