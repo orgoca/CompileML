@@ -81,11 +81,80 @@ def test_svg_deterministic_and_escaped(decision):
 
 
 def test_svg_needs_no_matplotlib():
+    import compileml.viz._arrow as arrow_module
     import compileml.viz._data as data_module
     import compileml.viz.svg as svg_module
 
-    for module in (svg_module, data_module):
+    for module in (svg_module, data_module, arrow_module):
         assert "matplotlib" not in {name.split(".")[0] for name in vars(module)}
+
+
+# --------------------------------------------------------- arrow geometry
+# The original waterfall's debug checklist, encoded as tests.
+def test_tri_frac_adaptive():
+    from compileml.viz._arrow import tri_frac
+
+    assert tri_frac(0.0, 100.0) == 0.50  # zero-width bar: max head
+    assert tri_frac(100.0, 100.0) == pytest.approx(0.05)  # full-range bar: min head
+    assert tri_frac(50.0, 100.0) == pytest.approx(0.275)  # linear in between
+    assert tri_frac(10_000.0, 100.0) == 0.05  # clamps below
+    # Debug checklist: "heads all 50% -> scale is 0 (degenerate viewRange)"
+    assert tri_frac(10.0, 0.0) == 0.50
+
+
+def test_arrow_points_seven_direction_aware():
+    from compileml.viz._arrow import arrow_points
+
+    right = arrow_points(0.0, 100.0, 50.0, half_h=9.0, overhang=2.0, tri_len=20.0)
+    left = arrow_points(100.0, 0.0, 50.0, half_h=9.0, overhang=2.0, tri_len=20.0)
+    assert len(right) == len(left) == 7
+
+    # Junction between start and tip, flipped per direction — the checklist's
+    # "heads inverted on negative bars -> re computed with + rectLen in both".
+    assert right[1][0] == pytest.approx(80.0)  # xStart + rectLen
+    assert left[1][0] == pytest.approx(20.0)  # xStart - rectLen
+    assert right[3] == (100.0, 50.0)  # tip at xEnd, yMid
+    assert left[3] == (0.0, 50.0)
+
+    # Barb: head visibly wider than the shaft — the checklist's "heads flush
+    # with shaft -> missing ±2 overhang points".
+    top, bot = 50.0 - 9.0, 50.0 + 9.0
+    assert right[2][1] == top - 2.0
+    assert right[4][1] == bot + 2.0
+
+    # Same point ordering both directions: winding stays consistent.
+    assert [p[1] for p in right] == [p[1] for p in left]
+
+
+def test_arrow_dead_zone():
+    from compileml.viz._arrow import arrow_points
+
+    assert arrow_points(10.0, 10.2, 50.0, tri_len=0.05) is None  # < 0.3 px
+    assert arrow_points(10.0, 10.4, 50.0, tri_len=0.1) is not None
+
+
+def test_svg_bars_are_single_polygons(decision):
+    import re
+
+    svg = waterfall_svg(decision)
+    polygons = re.findall(r'<polygon points="([^"]+)" fill="#[0-9a-f]{6}" opacity="0.92"/>', svg)
+    n_segments = len(waterfall_segments(decision)["segments"])
+    assert len(polygons) == n_segments  # one polygon per bar: body + head, one path
+    for points in polygons:
+        assert len(points.split()) == 7  # 7-point arrow
+    assert "<rect" in svg  # background + score bar remain rects
+    assert 'stroke="#' not in svg.split("<polygon")[1].split(">")[0]  # no stroke on arrows
+
+
+def test_svg_dead_zone_renders_tick(decision):
+    # The dead-zone is relative: one dominant bar sets the scale, and a
+    # 1-half-micro bar becomes sub-pixel next to it -> 6 px tick, no smear.
+    tiny = dict(decision)
+    tiny["contributions"] = [dict(c) for c in decision["contributions"]]
+    tiny["contributions"][1]["impact_half_micro"] = 1
+    svg = waterfall_svg(tiny, max_features=3)
+    assert svg.count("<polygon") >= 1  # the dominant bars stay arrows
+    assert 'stroke-width="1.5"' in svg  # the sub-pixel bar became a tick
 
 
 # ------------------------------------------------------------ matplotlib
