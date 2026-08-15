@@ -7,9 +7,22 @@ base install stays lean; ``waterfall_svg`` needs no plotting stack at all.
 
 from compileml.viz.svg import waterfall_svg
 
-_MPL_FUNCTIONS = {"waterfall", "decision_drivers", "band_drivers", "band_ladder"}
+_MPL_FUNCTIONS = {
+    "waterfall",
+    "decision_drivers",
+    "band_conditioned_decision_drivers",
+    "band_drivers",  # short alias for band_conditioned_decision_drivers
+    "band_ladder",
+}
 
-__all__ = ["band_drivers", "band_ladder", "decision_drivers", "waterfall", "waterfall_svg"]
+__all__ = [
+    "band_conditioned_decision_drivers",
+    "band_drivers",
+    "band_ladder",
+    "decision_drivers",
+    "waterfall",
+    "waterfall_svg",
+]
 
 
 def __getattr__(name):

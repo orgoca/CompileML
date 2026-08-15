@@ -52,7 +52,7 @@
 
 ::: compileml.viz.plots.decision_drivers
 
-::: compileml.viz.plots.band_drivers
+::: compileml.viz.plots.band_conditioned_decision_drivers
 
 ::: compileml.viz.plots.band_ladder
 

@@ -31,13 +31,22 @@ A validator can re-add the figure by hand. That is the point.
 ## Population views
 
 ```python
-from compileml.viz import decision_drivers, band_drivers, band_ladder
+from compileml.viz import decision_drivers, band_conditioned_decision_drivers, band_ladder
 
-sample = [decide(artifact, row, include_contributions=True) for row in X_sample]
-decision_drivers(sample, y=y_sample)          # strip plot, sorted by mean |impact|
-band_drivers(sample, y=y_sample, top_k=5)     # small multiples per band
-band_ladder(score_only_decisions, y_sample)   # observed bad rate per band
+sample = [decide(artifact, row, explain=True) for row in X_sample]
+decision_drivers(sample, y=y_sample)                       # SHAP-style beeswarm by reason code
+band_conditioned_decision_drivers(sample, y=y_sample)      # faceted beeswarm per band
+band_ladder(score_only_decisions, y_sample)                # observed bad rate per band
 ```
+
+The driver plots are the original beeswarm design: one point per
+(decision, top-k reason), labeled by **reason code**, biggest drivers on top,
+per-pile x-jitter to break discrete-value stacks, risk-increasing points drawn
+slightly larger and on top. `color_by` selects the encoding — `"auto"` colors
+by observed outcome when `y` is given and by impact direction otherwise — and
+`value_color=True` / `value_alpha=True` (with `values=` one `{feature: value}`
+dict per decision) add SHAP-style feature-value gradients toward dark low-end
+counterpart colors.
 
 Cost note: population driver plots need `explain=True` per sampled row —
 O(features²) traversals each — so pass a *sample*, not the portfolio.
