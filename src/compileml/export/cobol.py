@@ -41,7 +41,15 @@ def _cobol_name(name: str, used: set[str]) -> str:
 
 def _literal(threshold: float) -> str:
     """Shortest round-trip float literal, COBOL-style exponent."""
-    return repr(float(threshold)).replace("e", "E")
+    text = repr(float(threshold)).replace("e", "E")
+    if "E" in text:
+        # COBOL floating literals require a decimal point in the mantissa
+        # ('1E-05' is invalid; '1.0E-05' is not).
+        mantissa, exponent = text.split("E")
+        if "." not in mantissa:
+            mantissa += ".0"
+        text = f"{mantissa}E{exponent}"
+    return text
 
 
 def _emit_tree(tree: dict, names: list[str], indent: int) -> list[str]:
@@ -102,7 +110,11 @@ def export_cobol(
 
     out: list[str] = []
     push = out.append
-    push(">>SOURCE FORMAT FREE")
+    # Seven leading spaces: compilers parse fixed-format until the directive
+    # takes effect, and a directive starting in column 1 puts text in the
+    # indicator column (column 7). Area-B placement is accepted by both
+    # GnuCOBOL and Enterprise COBOL.
+    push("       >>SOURCE FORMAT FREE")
     push("IDENTIFICATION DIVISION.")
     push(f"PROGRAM-ID. {program_id}.")
     push("*> ------------------------------------------------------------")

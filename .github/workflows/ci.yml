@@ -117,4 +117,5 @@ jobs:
         shell: bash
         run: |
           cat hash-*.txt
-          test "$(cat hash-*.txt | sort -u | wc -l)" -eq 1
+          # tr strips the CRLF that Windows Python appends on redirect
+          test "$(cat hash-*.txt | tr -d '\r' | sort -u | wc -l)" -eq 1
