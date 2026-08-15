@@ -1,0 +1,62 @@
+site_name: CompileML
+site_description: Compile tree-ensemble models into deterministic, auditable decision artifacts.
+site_url: https://orgoca.github.io/CompileML
+repo_url: https://github.com/orgoca/CompileML
+repo_name: orgoca/CompileML
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+            docstring_options:
+              warnings: false
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Concepts:
+      - Determinism: concepts/determinism.md
+      - Exact attribution: concepts/attribution.md
+      - Risk bands: concepts/bands.md
+  - How-to:
+      - Reason codes: howto/reason-codes.md
+      - Zero-churn recalibration: howto/recalibrate.md
+      - Deploy (runtime, SQL, COBOL): howto/deploy.md
+      - Validate before deploying: howto/validate.md
+  - Reference:
+      - Artifact specification: ARTIFACT_SPEC.md
+      - Python API: reference/api.md
+      - CLI: reference/cli.md

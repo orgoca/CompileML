@@ -1,0 +1,37 @@
+{
+  "seed": 42,
+  "python": "3.14.3",
+  "machine": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+  "os": "Windows 11",
+  "retention": {
+    "teacher_auc": 0.8336,
+    "artifact_auc": 0.8266,
+    "teacher_gini": 0.6673,
+    "artifact_gini": 0.6533,
+    "band_ordinal_gini": 0.6474,
+    "gini_retention_pct": 97.9,
+    "band_gini_retention_pct": 97.03,
+    "spearman_teacher_vs_artifact": 0.9774,
+    "distill_spearman_train": 0.9761,
+    "n_train": 30000,
+    "n_test": 10000,
+    "n_features": 23
+  },
+  "latency": {
+    "score_band_pd_median_ms": 0.03,
+    "score_band_pd_p95_ms": 0.038,
+    "full_explain_median_ms": 8.4,
+    "full_explain_p95_ms": 12.2,
+    "band_ladder_median_us": 0.2,
+    "note": "pure-Python stdlib runtime, single row; explain is exact pairwise attribution, O(p^2) traversals at p=23"
+  },
+  "artifact": {
+    "size_kb": 97.1,
+    "n_trees": 120,
+    "hash": "a6be68bc9fbd7fe1\u2026",
+    "exact_attribution": true
+  },
+  "determinism": {
+    "rebuild_hash_identical": true
+  }
+}

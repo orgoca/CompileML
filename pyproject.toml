@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "compileml"
+version = "0.1.0.dev0"
+description = "Compile tree-ensemble models into deterministic, auditable, integer-exact decision artifacts — score, calibration, risk bands, and reason codes in one portable JSON, runnable with zero ML dependencies."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Carlos Ortiz", email = "orgoca@gmail.com" }]
+keywords = [
+    "credit-risk",
+    "model-deployment",
+    "explainability",
+    "determinism",
+    "scorecard",
+    "adverse-action",
+    "model-governance",
+    "xgboost",
+    "lightgbm",
+    "cobol",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Office/Business :: Financial",
+    "Typing :: Typed",
+]
+# Compile-side dependencies. The runtime subpackage (compileml.runtime)
+# imports only the Python standard library — enforced by a unit test.
+dependencies = [
+    "numpy>=1.24",
+    "scikit-learn>=1.3",
+]
+
+[project.optional-dependencies]
+xgboost = ["xgboost>=1.7"]
+lightgbm = ["lightgbm>=4.0"]
+viz = ["matplotlib>=3.7", "pandas>=2.0"]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "hypothesis>=6.90",
+    "ruff>=0.4",
+    "black>=24.0",
+    "mypy>=1.8",
+    "pandas>=2.0",
+]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
+]
+
+[project.urls]
+Homepage = "https://github.com/orgoca/CompileML"
+Documentation = "https://orgoca.github.io/CompileML"
+Repository = "https://github.com/orgoca/CompileML"
+Issues = "https://github.com/orgoca/CompileML/issues"
+Changelog = "https://github.com/orgoca/CompileML/blob/main/CHANGELOG.md"
+
+[project.scripts]
+compileml = "compileml.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+compileml = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["B905"]  # zip(strict=…) everywhere is noise; lengths are validated where it matters
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[tool.coverage.run]
+source = ["compileml"]
