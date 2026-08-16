@@ -7,11 +7,6 @@
 
 **Compile tree-ensemble models into deterministic, auditable decision artifacts.**
 
-<p align="center">
-  <img src="docs/assets/decision_waterfall.svg" width="760"
-       alt="Decision waterfall showing a baseline and per-feature integer impacts that sum to the final score and band">
-</p>
-
 <p align="center"><sub>
 This is one decision, drawn from the same integers that produced it. The bars sum to the score because they have to—not because a plotting library approximated them afterward.
 </sub></p>
