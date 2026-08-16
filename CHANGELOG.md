@@ -8,6 +8,24 @@ inside each artifact (`schema_version`).
 ## [Unreleased]
 
 ### Added
+- Tuning sweeps (`compileml.tune`): `sweep_whitebox` (trees × depth grid with
+  measured retention, rank agreement, artifact size, and explanation cost)
+  and `sweep_bands` (band-count grid with retention, Gini gap, and worst
+  within-band AUC).
+- `compileml.bands.band_efficiency`: the "money on the table" diagnostic —
+  continuous-vs-band Gini gap plus per-band within-band AUC with bootstrap
+  CIs and refinable / exhausted / inconclusive verdicts. Validation check 4
+  now carries these fields whenever outcomes are supplied, advisory by
+  default and gateable via `max_within_band_auc=`.
+- Exact scorecard extraction (`compileml.scorecard`, stdlib-only): at
+  whitebox depth ≤ 2 the artifact collapses into bin → points tables plus
+  explicit pairwise interaction grids whose integers re-sum to every
+  decision's `raw_micro` bit-for-bit (`score_from_scorecard` re-derives any
+  decision from the printed tables; asserted in tests). Markdown and CSV
+  renderers; `compileml scorecard` CLI subcommand; refuses above depth 2.
+- Docs: tuning guide (`howto/tuning.md`) answering the configuration
+  questions — tree count, depth, the trees-vs-depth asymmetry, band count,
+  band efficiency, scorecards — and a FAQ page.
 - Decision artifact schema v2: integer-quantized leaves, integer calibration
   tables, fixed-point band ladders, half-micro exact attribution with the
   reconciliation identity, missing-value policy, SHA-256 verify-on-load.

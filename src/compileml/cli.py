@@ -127,6 +127,21 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_scorecard(args) -> int:
+    from compileml.scorecard import build_scorecard, scorecard_to_csv, scorecard_to_markdown
+
+    artifact = load_artifact(args.artifact)
+    scorecard = build_scorecard(artifact)  # raises above depth 2 with guidance
+    text = scorecard_to_csv(scorecard) if args.format == "csv" else scorecard_to_markdown(scorecard)
+    if args.out in (None, "-"):
+        print(text)
+    else:
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(text)
+        print(f"wrote {args.out}")
+    return 0
+
+
 def cmd_validate(args) -> int:
     from compileml.validate import validate_artifact
 
@@ -230,6 +245,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dialect", choices=["ansi", "sqlite"], default="ansi")
     p.add_argument("--program-id", default="CMLSCORE", help="COBOL PROGRAM-ID")
     p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("scorecard", help="collapse a depth<=2 artifact into an exact scorecard")
+    p.add_argument("artifact")
+    p.add_argument("--format", choices=["markdown", "csv"], default="markdown")
+    p.add_argument("--out", help="output file (default: stdout)")
+    p.set_defaults(func=cmd_scorecard)
 
     p = sub.add_parser("validate", help="run the 8-check validation framework")
     p.add_argument("artifact")

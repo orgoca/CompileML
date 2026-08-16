@@ -18,6 +18,24 @@
 
 ::: compileml.bands.governance_bands
 
+::: compileml.bands.band_efficiency
+
+## Tuning
+
+::: compileml.tune.sweep_whitebox
+
+::: compileml.tune.sweep_bands
+
+## Scorecard
+
+::: compileml.scorecard.build_scorecard
+
+::: compileml.scorecard.score_from_scorecard
+
+::: compileml.scorecard.scorecard_to_markdown
+
+::: compileml.scorecard.scorecard_to_csv
+
 ## Artifact
 
 ::: compileml.artifact.build_artifact

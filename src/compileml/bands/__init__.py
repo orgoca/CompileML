@@ -5,9 +5,11 @@ search-and-certify builders. All return a :class:`BandSpec` consumed by
 
 from compileml.bands.builders import BandSpec, monotone_quantile_bands, quantile_bands
 from compileml.bands.certified import governance_bands, semantic_bands
+from compileml.bands.efficiency import band_efficiency
 
 __all__ = [
     "BandSpec",
+    "band_efficiency",
     "governance_bands",
     "monotone_quantile_bands",
     "quantile_bands",
