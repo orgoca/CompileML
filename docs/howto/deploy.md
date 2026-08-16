@@ -21,9 +21,14 @@ def handler(event, context):
     return decide(ARTIFACT, event["features"], explain=event.get("explain", True))
 ```
 
-Operational note: `decide(…, explain=False)` is the sub-millisecond hot path.
-Full explanations cost O(features²) traversals — score everything, explain
-declines and review queues.
+Operational note: explain everything — the default. A fully explained
+decision costs single-digit milliseconds at typical feature counts, which is
+real-time against any credit-decisioning SLA, and it keeps one payload shape
+flowing through downstream systems with the explanation stored as part of the
+decision record. `decide(…, explain=False)` remains available as the
+sub-millisecond path for bulk pre-screening where no decision is communicated
+to a customer; full-book batch re-explanation is where the O(features²) cost
+is real, and the leaf-time roadmap item targets it.
 
 Missing values follow the artifact's `missing_policy` — `"baseline"` re-applies
 the training-time imputation at decision time; `"reject"` refuses the row. NaN
@@ -70,7 +75,7 @@ Enterprise COBOL 6+.
 | Surface | Returns | Typical role |
 |---|---|---|
 | runtime `decide(explain=True)` | band, PD, exact reasons | decisioning API, adverse-action notices |
-| runtime `decide(explain=False)` | band, PD, latent | high-volume scoring |
+| runtime `decide(explain=False)` | band, PD, latent | bulk pre-screening (no customer-facing decision) |
 | SQL export | band, PD, latent per row | warehouse batch, portfolio re-score |
 | COBOL export | band, latent | core-banking / mainframe rails |
 

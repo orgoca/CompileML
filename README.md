@@ -180,7 +180,11 @@ The exact pairwise decomposition requires:
 1 + p + p(p−1)/2
 ```
 
-ensemble traversals for `p` features. It is exact rather than sampled, and that has a cost. In practice: score everything and explain the decisions that need to be explained.
+ensemble traversals for `p` features. It is exact rather than sampled, and that has a cost.
+
+In practice: explain everything. A few milliseconds per decision is real-time for credit decisioning — the bureau pull costs more — and complete attribution on every decision is what turns portfolio questions (marginal analysis, driver drift, fairness cuts) into census facts instead of sample estimates. It also means every production decision carries its own explanation in the record, computed at decision time under the same artifact hash.
+
+The quadratic cost matters in one place: re-explaining an entire book in batch, or artifacts with very wide feature sets. That is what the leaf-time roadmap item addresses — not live latency, which was never the constraint.
 
 ## What CompileML is not
 
@@ -315,7 +319,7 @@ src/compileml/runtime/
 
 The current priorities are:
 
-* compute exact attribution at leaf time and remove the (O(p^2)) explanation cost;
+* compute exact attribution at leaf time — making explain-everything p-independent, cheap for full-book batch, and enabling reason-code emission in the SQL export;
 * add Java and C exporters;
 * complete calibrated-PD output in COBOL;
 * add an optional NumPy batch scorer;

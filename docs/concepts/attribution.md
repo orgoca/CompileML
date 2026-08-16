@@ -47,6 +47,21 @@ the decision are not reasons.
 Exact pairwise attribution costs `1 + p + p(p−1)/2` ensemble traversals per
 row — 300 traversals at 23 features (≈8 ms in the pure-Python runtime),
 5,000+ at 100 features. It is exact, not sampled, and priced accordingly.
-The intended pattern: score everything with `decide(…, explain=False)`
-(sub-millisecond), explain the rows that need explaining — declines, review
-queues, audit samples. A leaf-time exact algorithm is on the roadmap.
+
+**Explain everything.** For live decisioning, single-digit milliseconds is
+real-time — a credit decision's end-to-end budget contains bureau pulls
+measured in hundreds of milliseconds, so the explanation is statistically
+invisible. What explain-everything buys is structural: the explanation is
+part of the decision record (computed at decision time, under the artifact's
+hash, not reconstructed later); there is one payload shape instead of a
+bifurcated score/explain path; and portfolio questions — marginal-band
+composition, driver drift, fairness cuts — become census facts over complete
+attributions rather than sample estimates with selection effects. This is why
+`decide()` defaults to `explain=True`.
+
+Where the quadratic cost is real: re-explaining an entire book in batch
+(10M accounts × 8 ms ≈ 23 CPU-hours, growing with p²) and very wide feature
+sets. The leaf-time exact algorithm on the roadmap addresses exactly that —
+per-tree decomposition makes the cost independent of feature count — and
+additionally enables reason-code emission in the SQL export. Live latency was
+never the constraint.

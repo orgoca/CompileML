@@ -93,6 +93,18 @@ def decide(
             model.get("input_precision", "float64"),
         )
         c2, full, fbase, residual2 = contributions_half_micro(model, x, baseline)
+
+        # Self-check with actual content: on a depth<=2 artifact the residual
+        # is zero as an arithmetic identity, so a nonzero value can only mean
+        # a corrupted artifact or a regressed runtime. (The naive check —
+        # sum + residual == 2*delta — is a tautology by the residual's
+        # definition and would never fire; this one can.)
+        if residual2 != 0 and artifact.get("runtime", {}).get("exact_attribution"):
+            raise ArtifactError(
+                "attribution failed to reconcile exactly on an exact-attribution "
+                f"artifact (residual {residual2} half-micro) — refusing to emit "
+                "the decision; the artifact or runtime is corrupted"
+            )
         impact_int = display_impacts(c2, full, fbase, residual2, ratio)
 
         runtime_cfg = artifact.get("runtime", {})

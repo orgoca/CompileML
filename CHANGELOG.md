@@ -31,3 +31,12 @@ inside each artifact (`schema_version`).
   dependency-free `waterfall_svg`. Plots draw the deployed integers and never
   recompute them; the waterfall's segments are tested against the spec §7.4
   identity exactly.
+- Runtime self-check: on artifacts recording `exact_attribution`, `decide()`
+  refuses to emit an explanation whose residual is nonzero — every explained
+  production decision now re-proves attribution integrity in place.
+
+### Changed
+- Documentation doctrine: explain everything by default. Complete attribution
+  on every decision is real-time for credit decisioning and makes portfolio
+  analytics census-complete; the O(p²) cost is a full-book batch concern,
+  which the leaf-time attribution roadmap item targets.
