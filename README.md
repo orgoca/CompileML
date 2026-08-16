@@ -7,25 +7,28 @@
 
 **Compile tree-ensemble models into deterministic, auditable decision artifacts.**
 
-## The idea
+<p align="center">
+  <img src="https://raw.githubusercontent.com/orgoca/CompileML/main/docs/assets/decision_waterfall.svg" width="760"
+       alt="Decision waterfall showing a baseline and per-feature integer impacts that sum to the final score and band">
+</p>
 
-Training a model and running a model are different problems.
+<p align="center"><sub>
+One decision, drawn from the same integers that produced it. The bars sum to the score because they have to—not because a plotting library approximated them afterward.
+</sub></p>
 
-Training happens in Python, with modern libraries and plenty of compute. Production may happen in a SQL warehouse, a constrained service, or a mainframe that has never heard of scikit-learn. In regulated decisions, the output also needs to be calibrated, assigned to a risk band, explained, validated, and reproduced later.
+## Why this exists
 
-Too often, each of those steps develops its own version of the truth.
+Risk teams do not reject machine learning out of conservatism. They reject it because, in the environments they are accountable for, ML has genuinely failed on three things they cannot compromise.
 
-CompileML takes a fitted tree model and compiles the whole decision into one hashed JSON artifact:
+A score that moves when the infrastructure changes. An explanation that approximates the decision instead of reproducing it. A model that cannot run where the decision actually happens.
 
-* the score;
-* the calibrated probability;
-* the risk bands;
-* the reason codes;
-* and the information needed to explain the result.
+Those objections are correct. What has been missing is not willingness — it is infrastructure that answers them.
 
-That artifact can run through a standard-library-only Python runtime or be exported to SQL or COBOL. The important outputs are integers, so the same input produces the same score, band, probability, and explanation wherever the artifact runs.
+CompileML compiles a trained tree model into a single hashed JSON artifact that carries the whole decision: the score, the calibrated probability, the risk bands, the reason codes, and everything needed to explain the result. The artifact runs on a standard-library-only Python runtime, or exports to SQL or COBOL. Its outputs are integers, so the same input produces the same score, band, probability, and explanation wherever it runs.
 
-The point is not to preserve Python everywhere. The point is to stop needing Python everywhere.
+At shallow depth the artifact is not merely *like* a scorecard. It is one, exactly — the object a model validator already knows how to read.
+
+The trade is real and measured: about 2% of the teacher model's Gini. That is the whole price.
 
 ## Quick example
 
@@ -95,47 +98,67 @@ compileml export decision.json --target sql   --out scorer.sql
 compileml export decision.json --target cobol --out scorer.cob
 ```
 
-## Why I built this
+## The three objections, answered
 
-I have seen good models become much less impressive on the way to production.
+I have watched good models become much less impressive on the way to production.
 
-The model starts in Python. Someone rewrites it in SQL. Someone else builds the bands in a spreadsheet. Calibration lives in another script. Reason codes are produced through a separate explanation process. Six months later, everybody is discussing “the model,” but they are no longer talking about exactly the same thing.
+The model starts in Python. Someone rewrites it in SQL. Someone else builds the bands in a spreadsheet. Calibration lives in another script. Reason codes are produced through a separate explanation process. Six months later, everybody is discussing "the model," but they are no longer talking about exactly the same thing.
 
-Three problems show up repeatedly.
+Each of the three standing objections has a structural answer.
 
-### Scores drift
+### Stability: scores drift
 
 Floating-point arithmetic is not a reassuring foundation for a decision that must be reproduced across languages and systems. Small differences in accumulation, precision, or implementation can move a score near a boundary.
 
 A credit score should be a fact, not a distribution over environments.
 
-CompileML quantizes model leaves once, at compile time. After that, scoring is integer addition, banding is integer comparison, and calibration is integer table lookup.
+CompileML quantizes model leaves once, at compile time. After that, scoring is integer addition, banding is integer comparison, and calibration is integer table lookup. Recalibration refits probabilities while the model and band edges stay byte-identical, so updating a PD table cannot move a single account between bands.
 
-### Explanations do not reconcile
+### Explainability: explanations do not reconcile
 
 Post-hoc explainers are useful, but an explanation of a regulated decision should not merely resemble the decision.
 
 CompileML computes attribution from the compiled model in integer units. The feature impacts, baseline, and residual satisfy a reconciliation identity that validation can add back independently.
 
-For whiteboxes of depth two or less, the pairwise decomposition is complete and the residual is zero.
+For whiteboxes of depth two or less, the pairwise decomposition is complete and the residual is exactly zero. The runtime refuses to emit an explanation that fails to reconcile.
 
-### The deployment stack is not the modeling stack
+### Deployability: the deployment stack is not the modeling stack
 
 Banks and other large institutions run important decisions on SQL systems, core platforms, and mainframes. Requiring the entire training environment in production is often unrealistic and sometimes unnecessary.
 
 CompileML moves complexity to compile time and leaves production with a small, explicit artifact.
 
+## It compiles to a scorecard
+
+At whitebox depth ≤ 2, the compiled artifact collapses into a classic points scorecard — exactly, not as an approximation.
+
+```bash
+compileml scorecard decision.json --format csv --out scorecard.csv
+```
+
+Depth 1 produces the familiar form: per feature, a bin and its points. Depth 2 adds explicit pairwise interaction grids over the union of the relevant thresholds. Points are the artifact's own integers, and the identity
+
+```text
+base_points + Σ main_effect(x) + Σ interaction(x) == score
+```
+
+holds bit-for-bit on every row. `score_from_scorecard()` re-derives any production decision from the printed tables alone, and the test suite asserts it.
+
+Hand the CSV to a validator and they can reproduce production scores in a spreadsheet. Above depth 2 no clean scorecard exists, and the tool raises instead of approximating — the same boundary as exact attribution, for the same reason.
+
 ## What the artifact guarantees
 
-Given the same artifact and the same input values, CompileML is designed to produce the same governed integer outputs across supported runtimes.
+Given the same artifact and the same input values, CompileML produces the same governed integer outputs across supported runtimes.
 
 The repository tests this rather than asking you to take it on faith:
 
 * SQL output is executed in SQLite and compared row by row with the Python runtime.
 * Generated COBOL is compiled and run in CI, then checked against the reference implementation.
 * The same seeded artifact is built on Linux, macOS, and Windows and the hashes are compared.
+* Committed reference decisions are replayed on every OS and Python version in the matrix.
 * Attribution is added back to the decision during validation.
 * Recalibration tests verify that the model and band edges remain unchanged.
+* Scorecard tables are re-summed against the runtime's own integers.
 * The standard-library-only runtime is enforced by inspecting its imports.
 
 The artifact includes a SHA-256 hash. Loaders verify it by default and reject a document whose contents no longer match the stored hash. This detects modification or corruption; it is an integrity check, not a cryptographic signature of who produced the artifact.
@@ -163,6 +186,8 @@ python benchmarks/run_benchmarks.py
 | Artifact size                              |                      97 KB |
 | Identical hash on rebuild                  |                        Yes |
 
+That 2% of Gini is the price of everything above it. It is stated rather than hidden, and it is reproducible on your own data with `compileml.tune.sweep_whitebox`.
+
 One honest qualification: scoring is very fast; full explanation is not equally cheap.
 
 The exact pairwise decomposition requires:
@@ -177,6 +202,27 @@ In practice: explain everything. A few milliseconds per decision is real-time fo
 
 The quadratic cost matters in one place: re-explaining an entire book in batch, or artifacts with very wide feature sets. That is what the leaf-time roadmap item addresses — not live latency, which was never the constraint.
 
+## Choosing the configuration
+
+The two capacity knobs are not symmetric, and this is the single most useful thing to know before tuning.
+
+`n_estimators` buys fidelity at a linear cost in artifact size and explanation time, and costs nothing else. Determinism, portability, and exact attribution are unaffected at any tree count.
+
+`max_depth` buys fidelity per tree, but above 2 it takes the exactness guarantee with it: attribution residuals appear and no clean scorecard exists.
+
+Spend on trees. Be stingy with depth.
+
+Both are measurable rather than guessable:
+
+```python
+from compileml.tune import sweep_whitebox, sweep_bands
+
+sweep_whitebox(X, teacher_latent, y, X_val=X_val, y_val=y_val, teacher_latent_val=t_val)
+sweep_bands(latent, y, k_grid=(4, 6, 8, 10, 12, 16))
+```
+
+For banding, `band_efficiency()` reports what the ladder discards — the Gini gap against the continuous score — and, per band, whether the score still ranks risk internally. A band that can still separate outcomes is a refinement opportunity; a band that cannot is a band you have used up. The [tuning guide](docs/howto/tuning.md) walks through both.
+
 ## What CompileML is not
 
 CompileML is not a new training framework. Use XGBoost, LightGBM, scikit-learn, or another teacher that can be distilled into the supported whitebox representation.
@@ -187,9 +233,9 @@ It is not a promise that your data pipelines are identical. Determinism means:
 same input values + same artifact = same governed outputs
 ```
 
-Producing the same input values across systems remains the caller’s responsibility.
+Producing the same input values across systems remains the caller's responsibility.
 
-It is also not a compliance certification. No library can certify an institution’s model, data, policy language, or governance process.
+It is also not a compliance certification. No library can certify an institution's model, data, policy language, or governance process.
 
 CompileML is infrastructure intended to make those things inspectable instead of asking validators to trust a chain of separate implementations.
 
@@ -228,7 +274,7 @@ That matters: the chart cannot disagree with the deployed decision because both 
 from compileml.viz import (
     waterfall,
     decision_drivers,
-    band_drivers,
+    band_conditioned_decision_drivers,
     band_ladder,
 )
 
@@ -237,11 +283,11 @@ waterfall(
 )
 
 decision_drivers(sample_decisions, y=y_sample)
-band_drivers(sample_decisions, y=y_sample)
+band_conditioned_decision_drivers(sample_decisions, y=y_sample)
 band_ladder(score_decisions, y_sample)
 ```
 
-The image at the top of this README was rendered by `waterfall_svg()` from the repository’s committed reference artifact. That renderer also uses only the standard library.
+The image at the top of this README was rendered by `waterfall_svg()` from the repository's committed reference artifact. That renderer also uses only the standard library.
 
 ## Validation
 
@@ -258,13 +304,13 @@ It checks:
 1. artifact integrity;
 2. explanation reconciliation;
 3. fidelity to the source model;
-4. band coverage and score resolution;
+4. band coverage, score resolution, and band efficiency;
 5. bad-rate monotonicity;
 6. band-ladder churn;
 7. explanation stability;
 8. reason-code coverage.
 
-These checks run against the compiled artifact through the same runtime used for production decisions. There is no separate notebook implementation allowed to become “almost the same” over time.
+These checks run against the compiled artifact through the same runtime used for production decisions. There is no separate notebook implementation allowed to become "almost the same" over time.
 
 The command exits with `0` or `1`, so it can gate deployment in CI.
 
@@ -298,6 +344,8 @@ src/compileml/runtime/
 ## Documentation
 
 * [Quickstart](docs/quickstart.md)
+* [FAQ](docs/faq.md)
+* [Tuning the compilation](docs/howto/tuning.md)
 * [Artifact specification](docs/ARTIFACT_SPEC.md)
 * [Reason codes](docs/howto/reason-codes.md)
 * [Recalibration without band churn](docs/howto/recalibrate.md)
