@@ -3,6 +3,33 @@
 Thanks for your interest. CompileML aims for a small number of hard promises,
 each enforced by tests — contributions are judged against that bar.
 
+## Where to start
+
+The [open issues](https://github.com/orgoca/CompileML/issues) are written to be
+picked up: each one states the problem, why it matters in a regulated lending
+context, a proposed approach, acceptance criteria, and the files involved.
+
+Three of them are, in my view, what stands between this being interesting
+infrastructure and something a risk function could actually adopt:
+
+| | |
+|---|---|
+| [#8](https://github.com/orgoca/CompileML/issues/8) | **Monotone feature constraints.** Today the distilled whitebox cannot enforce them, so a compiled scorecard may show a bin where more delinquency scores *better*. That is a scorecard a committee rejects on sight. |
+| [#9](https://github.com/orgoca/CompileML/issues/9) | **Stability monitoring (PSI/CSI/drift).** The validation framework checks an artifact at a point in time; model risk management is about what happens next. |
+| [#10](https://github.com/orgoca/CompileML/issues/10) | **Fair lending.** Disparate impact testing, plus disparity decomposition over the exact attributions — something the reconciliation identity makes possible here in a way it is not elsewhere. |
+
+Smaller entry points: [#17](https://github.com/orgoca/CompileML/issues/17)
+(FAQ: why not PMML/ONNX), [#18](https://github.com/orgoca/CompileML/issues/18)
+(WOE compatibility docs), [#12](https://github.com/orgoca/CompileML/issues/12)
+(retention by segment).
+
+Domain knowledge is as welcome as code. Several issues — segmented artifact
+suites ([#13](https://github.com/orgoca/CompileML/issues/13)), informative
+missingness ([#11](https://github.com/orgoca/CompileML/issues/11)) — need
+someone who has governed a scorecard in production more than they need someone
+who writes fast Python. Comment on the issue before opening a PR on those; the
+design discussion is the work.
+
 ## Ground rules
 
 1. **The spec is the contract.** Runtime, exporters, and validators implement
