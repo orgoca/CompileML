@@ -65,6 +65,7 @@ def validate_artifact(
     jaccard_threshold: float = 0.5,
     noise_scale: float = 0.01,
     min_fidelity_spearman: float = 0.999,
+    max_within_band_auc: float | None = None,
     require_full_reason_coverage: bool = False,
     seed: int = 42,
 ) -> dict:
@@ -182,6 +183,24 @@ def validate_artifact(
             "bands_seen": int(len(np.unique(bands_seen))),
             "unique_latent_ratio": float(resolution),
         }
+        if y is not None:
+            # Band efficiency: how much discrimination the ladder discards,
+            # and whether any band could still be split ("money on the
+            # table"). Advisory evidence unless max_within_band_auc gates it.
+            from compileml.bands.efficiency import band_efficiency
+
+            latent_float = latents.astype(float) / scale
+            eff = band_efficiency(latent_float, y.astype(int), artifact, n_boot=100, seed=seed)
+            check4 = checks["4_band_properties"]
+            check4["banding_gini_gap"] = eff["gini_gap"]
+            check4["band_efficiency"] = eff["per_band"]
+            worst = [p for p in eff["per_band"] if p["auc_ci"] is not None]
+            worst_auc = max((p["auc_within"] for p in worst), default=None)
+            check4["worst_within_band_auc"] = worst_auc
+            check4["worst_band"] = eff["worst_band"]
+            if max_within_band_auc is not None and worst_auc is not None:
+                check4["max_within_band_auc"] = float(max_within_band_auc)
+                check4["pass"] = bool(check4["pass"] and worst_auc <= max_within_band_auc)
     else:
         checks["4_band_properties"] = {"pass": True, "skipped": True}
 

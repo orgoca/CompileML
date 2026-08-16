@@ -52,11 +52,13 @@ nav:
       - Exact attribution: concepts/attribution.md
       - Risk bands: concepts/bands.md
   - How-to:
+      - Tuning the compilation: howto/tuning.md
       - Reason codes: howto/reason-codes.md
       - Visualize decisions: howto/visualize.md
       - Zero-churn recalibration: howto/recalibrate.md
       - Deploy (runtime, SQL, COBOL): howto/deploy.md
       - Validate before deploying: howto/validate.md
+  - FAQ: faq.md
   - Reference:
       - Artifact specification: ARTIFACT_SPEC.md
       - Python API: reference/api.md
