@@ -29,6 +29,14 @@ The suite is deterministic and offline; `pytest` should pass everywhere.
 The GnuCOBOL parity test runs automatically where `cobc` is installed and
 skips elsewhere.
 
+### Notebooks
+
+CI executes the example notebooks on every push. A notebook may opt out by
+setting `metadata.compileml.ci_execute = false` — reserved for rendered
+galleries whose APIs are already covered by unit tests. If you change
+`compileml.viz`, re-run `examples/04_visualization.ipynb` and commit the
+regenerated figures.
+
 ## Style
 
 - `ruff check` and `black --check` (line length 100) must pass.

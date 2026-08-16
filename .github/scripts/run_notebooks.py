@@ -1,4 +1,11 @@
-"""Execute every example notebook; fail CI on any cell error."""
+"""Execute every example notebook; fail CI on any cell error.
+
+A notebook opts out by setting ``metadata.compileml.ci_execute = false`` in
+its own notebook metadata — the declaration travels with the file, so it
+survives renames and is visible to anyone reading the notebook. Opted-out
+notebooks still ship committed outputs; the APIs they demonstrate are
+covered by the unit tests.
+"""
 
 import sys
 from pathlib import Path
@@ -10,8 +17,11 @@ EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 
 failed = False
 for path in sorted(EXAMPLES.glob("*.ipynb")):
-    print(f"executing {path.name} …", flush=True)
     nb = nbformat.read(path, as_version=4)
+    if nb.metadata.get("compileml", {}).get("ci_execute") is False:
+        print(f"skipping {path.name} (ci_execute: false)")
+        continue
+    print(f"executing {path.name} …", flush=True)
     try:
         NotebookClient(
             nb, timeout=900, kernel_name="python3", resources={"metadata": {"path": str(EXAMPLES)}}

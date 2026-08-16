@@ -75,3 +75,11 @@ Every renderer accepts `labels={feature: display_name}` and a `colors={…}`
 override (keys: `up`, `down`, `base`, `remainder`, `residual`, `good`, `bad`,
 `neutral`), and the matplotlib functions take an `ax=` to compose into your
 own figures.
+
+## See it rendered
+
+[`examples/04_visualization.ipynb`](https://github.com/orgoca/CompileML/blob/main/examples/04_visualization.ipynb)
+is the visual reference for everything on this page: arrow geometry, exact
+remainder truncation, the depth>2 residual bar, inline SVG, every `color_by`
+and `value_color` encoding, `sort_metric` variants, per-band facets, and
+restyling with an institutional palette.
