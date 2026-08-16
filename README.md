@@ -7,15 +7,6 @@
 
 **Compile tree-ensemble models into deterministic, auditable decision artifacts.**
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/orgoca/CompileML/main/docs/assets/decision_waterfall.svg" width="760"
-       alt="Decision waterfall showing a baseline and per-feature integer impacts that sum to the final score and band">
-</p>
-
-<p align="center"><sub>
-One decision, drawn from the same integers that produced it. The bars sum to the score because they have to—not because a plotting library approximated them afterward.
-</sub></p>
-
 ## Why this exists
 
 Risk teams do not reject machine learning out of conservatism. They reject it because, in the environments they are accountable for, ML has genuinely failed on three things they cannot compromise.
