@@ -204,6 +204,32 @@ def test_canonical_hash_ignores_key_order(artifact):
     assert canonical_hash(reordered) == canonical_hash(artifact)
 
 
+# ------------------------------------------------------ runtime self-check
+def test_decide_refuses_nonreconciling_explanation(artifact, monkeypatch):
+    """A corrupted attribution on an exact-attribution artifact must be
+    refused, not emitted. Forced here by stubbing the contribution kernel."""
+    import sys
+
+    # The package attribute `decide` is the function (re-exported by
+    # __init__), which shadows the submodule in `import … as` — go through
+    # sys.modules for the module object itself.
+    decide_module = sys.modules["compileml.runtime.decide"]
+    real = decide_module.contributions_half_micro
+
+    def corrupted(model, x, baseline):
+        c2, full, fbase, _ = real(model, x, baseline)
+        return [v + 2 for v in c2], full, fbase, 6  # nonzero residual, claims intact
+
+    monkeypatch.setattr(decide_module, "contributions_half_micro", corrupted)
+    with pytest.raises(ArtifactError, match="refusing to emit"):
+        decide(artifact, X)
+
+    # Depth>2 artifacts legitimately carry residuals: no refusal there.
+    artifact["runtime"]["exact_attribution"] = False
+    out = decide(artifact, X)
+    assert out["attribution_residual_half_micro"] == 6
+
+
 # ---------------------------------------------------------- input precision
 def test_input_precision_float32_changes_routing(artifact):
     """A float64 input just above a float32 threshold routes differently

@@ -48,10 +48,12 @@ by observed outcome when `y` is given and by impact direction otherwise — and
 dict per decision) add SHAP-style feature-value gradients toward dark low-end
 counterpart colors.
 
-Cost note: population driver plots need `explain=True` per sampled row —
-O(features²) traversals each — so pass a *sample*, not the portfolio.
-`band_ladder` is the exception: it only needs bands, so cheap
-`decide(…, explain=False)` payloads suffice.
+If your decisioning already explains everything (the recommended default),
+the driver plots simply consume stored payloads — sampling becomes a
+*readability* choice for the beeswarm, not a compute constraint. When
+generating explanations ad hoc instead, note each costs O(features²)
+traversals. `band_ladder` needs only bands either way, so cheap
+`decide(…, explain=False)` payloads suffice for it.
 
 ## Dependency-free SVG
 
