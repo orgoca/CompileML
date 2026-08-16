@@ -34,6 +34,11 @@ inside each artifact (`schema_version`).
 - Runtime self-check: on artifacts recording `exact_attribution`, `decide()`
   refuses to emit an explanation whose residual is nonzero — every explained
   production decision now re-proves attribution integrity in place.
+- `examples/04_visualization.ipynb`: rendered reference gallery for the viz
+  suite — arrow geometry, exact remainder truncation, the depth>2 residual
+  bar, dependency-free SVG, every colour/sort encoding, per-band facets, and
+  restyling. Notebooks can now opt out of CI execution via
+  `metadata.compileml.ci_execute = false`.
 
 ### Changed
 - Documentation doctrine: explain everything by default. Complete attribution
