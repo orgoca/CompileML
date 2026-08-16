@@ -7,10 +7,6 @@
 
 **Compile tree-ensemble models into deterministic, auditable decision artifacts.**
 
-<p align="center"><sub>
-This is one decision, drawn from the same integers that produced it. The bars sum to the score because they have to—not because a plotting library approximated them afterward.
-</sub></p>
-
 ## The idea
 
 Training a model and running a model are different problems.
