@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "compileml"
-version = "0.1.0"
+dynamic = ["version"]  # single source: compileml.__version__ in src/compileml/__init__.py
 description = "Compile tree-ensemble models into deterministic, auditable, integer-exact decision artifacts — score, calibration, risk bands, and reason codes in one portable JSON, runnable with zero ML dependencies."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -72,6 +72,9 @@ Changelog = "https://github.com/orgoca/CompileML/blob/main/CHANGELOG.md"
 
 [project.scripts]
 compileml = "compileml.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "compileml.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]

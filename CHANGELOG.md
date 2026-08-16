@@ -7,6 +7,14 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-16
+
+First complete release. Supersedes 0.1.0, whose wheel carried a stale
+hardcoded `compileml.__version__` of `0.1.0.dev0` (the PyPI metadata was
+correct; the module attribute and artifact `compileml_version` were not).
+The version now has a single source of truth — `compileml.__version__` —
+which pyproject reads at build time.
+
 ### Added
 - Tuning sweeps (`compileml.tune`): `sweep_whitebox` (trees × depth grid with
   measured retention, rank agreement, artifact size, and explanation cost)

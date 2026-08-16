@@ -24,8 +24,9 @@ tokens stored anywhere.
 
 ## Releasing vX.Y.Z
 
-1. Bump `version` in `pyproject.toml` (drop the `.dev0`); move the
-   `[Unreleased]` CHANGELOG section under the new version with the date.
+1. Bump `__version__` in `src/compileml/__init__.py` — the single source of
+   truth; pyproject reads it at build time — and move the `[Unreleased]`
+   CHANGELOG section under the new version with the date.
 2. Commit: `release: vX.Y.Z`, then tag and push:
    ```bash
    git tag vX.Y.Z
@@ -33,7 +34,8 @@ tokens stored anywhere.
    ```
 3. Create a GitHub Release from the tag (paste the CHANGELOG section).
    Publishing to PyPI triggers automatically from the release event.
-4. Post-release: bump `version` to the next `.dev0` and commit.
+4. Post-release: bump `__version__` in `src/compileml/__init__.py` to the
+   next `.dev0` and commit.
 
 ## Release gates (all enforced by CI before you ever tag)
 
