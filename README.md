@@ -5,29 +5,27 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/compileml/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-**Compile the predictive power of tree ensembles into transparent decision logic that runs anywhere—without the black box or the model-serving stack.**
+**Keep the predictive power of a tree ensemble. Deploy it as transparent decision logic with no model runtime.**
 
 ## Why this exists
 
 Risk teams are usually offered a bad choice.
 
-They can use a traditional scorecard that is transparent, reproducible, and easy to deploy—but leaves predictive power on the table. Or they can use a modern tree ensemble that predicts better, but arrives with a Python environment, model libraries, containers, hosted endpoints, post-hoc explanations, and a model that validators cannot independently reproduce.
+A traditional scorecard is transparent, reproducible, and deploys anywhere — and leaves predictive power on the table. A tree ensemble predicts better, then arrives with a Python environment, a serving stack, post-hoc explanations, and a model no validator can reproduce independently.
 
 CompileML removes that choice.
 
-Train the strongest model you can with XGBoost, LightGBM, scikit-learn, or another supported teacher. CompileML distills its predictive structure into a shallow, integer-valued whitebox and packages the complete decision into one hashed artifact: score, calibrated probability, risk bands, reason codes, and exact attribution.
+Train the strongest teacher you can — XGBoost, LightGBM, scikit-learn, anything that can be distilled. CompileML projects its predictive structure into a shallow, integer-valued whitebox and packages the complete decision into one hashed artifact: score, calibrated probability, risk bands, reason codes, attribution.
 
-The teacher model is not deployed. It disappears from the production path.
+Then the teacher is discarded. It was a means, not a deliverable, and it never reaches production.
 
-What remains is explicit decision logic built from integer addition, comparisons, and table lookups. The artifact can run through CompileML’s standard-library-only Python implementation, inside an ordinary application or a small AWS Lambda function. It can be exported as standalone SQL or COBOL and executed directly where the decision already happens. With the JavaScript target, the same artifact can run in vanilla JavaScript—even inside a self-contained HTML file.
+What ships instead is decision logic built from integer addition, comparison, and table lookup. It runs under CompileML's standard-library-only Python implementation — an ordinary application, a small Lambda, a batch job — or you export it as standalone SQL or COBOL and run it directly where the decision already happens. No XGBoost in production, no scikit-learn, no scoring service to operate. In exported form there is no model runtime at all.
 
-No XGBoost in production. No scikit-learn. No Python scoring service. No containerized model endpoint. No SageMaker deployment simply to evaluate a decision tree. In exported form, there is no model runtime at all.
+This is not a lighter way to serve the black box. The black box was used as a teacher and then compiled out of the system.
 
-This is not a lighter way to serve the black box. The black box has been used as a teacher and then compiled out of the system.
+That buys three things, and I would not trade any one of them for the other two: the artifact reproduces to the integer on any machine, it explains itself by arithmetic rather than approximation, and it lands where the decision already runs. The sections below are how each one is enforced.
 
-The result retains most of the teacher’s predictive power while behaving like an auditable scorecard. In the committed benchmark, the compiled integer artifact retains 97.9% of the teacher model’s Gini. At whitebox depth two or less, every decision can be reconstructed exactly from printed scorecard tables, and every explanation adds back to the production score with zero residual.
-
-That is the measured trade: approximately 2% of the teacher’s Gini in exchange for deterministic execution, runtime-free deployment, and exact transparency.
+The benchmark puts the cost at about 2% of the teacher's Gini. In exchange, at whitebox depth two or less, every decision reconstructs exactly from a printed scorecard table, and every explanation adds back to the production score with nothing left over.
 
 ## Quick example
 
