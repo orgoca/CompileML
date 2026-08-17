@@ -1,0 +1,1365 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Compile tree-ensemble models into deterministic, auditable decision artifacts.">
+      
+      
+      
+        <link rel="canonical" href="https://orgoca.github.io/CompileML/howto/tuning/">
+      
+      
+        <link rel="prev" href="../../concepts/bands/">
+      
+      
+        <link rel="next" href="../reason-codes/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Tuning the compilation - CompileML</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tuning-the-compilation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="CompileML" class="md-header__button md-logo" aria-label="CompileML" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CompileML
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tuning the compilation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/orgoca/CompileML" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    orgoca/CompileML
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="CompileML" class="md-nav__button md-logo" aria-label="CompileML" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    CompileML
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/orgoca/CompileML" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    orgoca/CompileML
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Determinism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/attribution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/bands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Risk bands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tuning the compilation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tuning the compilation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-two-knobs-are-not-symmetric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The two knobs are not symmetric
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-the-tree-count" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding the tree count
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-depth-one-table-one-story" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing depth: one table, one story
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#doesnt-a-bigger-whitebox-just-become-the-teacher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Doesn't a bigger whitebox just become the teacher?"
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-many-bands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How many bands?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#money-on-the-table-within-band-auc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Money on the table: within-band AUC
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#producing-a-scorecard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Producing a scorecard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defaults-for-the-impatient" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defaults, for the impatient
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reason-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reason codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../visualize/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualize decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recalibrate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-churn recalibration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy (runtime, SQL, COBOL)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../validate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validate before deploying
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ARTIFACT_SPEC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Artifact specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-two-knobs-are-not-symmetric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The two knobs are not symmetric
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-the-tree-count" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding the tree count
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-depth-one-table-one-story" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing depth: one table, one story
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#doesnt-a-bigger-whitebox-just-become-the-teacher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Doesn't a bigger whitebox just become the teacher?"
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-many-bands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How many bands?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#money-on-the-table-within-band-auc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Money on the table: within-band AUC
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#producing-a-scorecard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Producing a scorecard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defaults-for-the-impatient" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defaults, for the impatient
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="tuning-the-compilation">Tuning the compilation<a class="headerlink" href="#tuning-the-compilation" title="Permanent link">&para;</a></h1>
+<p>Every question on this page has a measured answer — <code>compileml.tune</code> exists
+so configuration is a table you read, not a guess you defend.</p>
+<h2 id="the-two-knobs-are-not-symmetric">The two knobs are not symmetric<a class="headerlink" href="#the-two-knobs-are-not-symmetric" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Knob</th>
+<th>Buys</th>
+<th>Costs</th>
+<th>Determinism / portability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>n_estimators</code> ↑</td>
+<td>fidelity to the teacher</td>
+<td>artifact size and explanation time, both <strong>linear</strong></td>
+<td><strong>unaffected</strong></td>
+</tr>
+<tr>
+<td><code>max_depth</code> ↑</td>
+<td>fidelity per tree</td>
+<td><strong>exact attribution above 2</strong>, per-tree explain cost, scorecard legibility</td>
+<td><strong>unaffected</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Integer exactness, cross-runtime determinism, and hash governance are
+structural: a 500-tree artifact is exactly as deterministic and exactly as
+COBOL-exportable as a 30-tree one. Nothing about compilation degrades with
+size — what degrades above depth 2 is <em>explainability</em>, and only that.</p>
+<p><strong>Spend on trees; be stingy with depth.</strong></p>
+<h2 id="finding-the-tree-count">Finding the tree count<a class="headerlink" href="#finding-the-tree-count" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">compileml.tune</span><span class="w"> </span><span class="kn">import</span> <span class="n">sweep_whitebox</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="n">sweep_whitebox</span><span class="p">(</span>
+    <span class="n">X_train</span><span class="p">,</span> <span class="n">teacher_latent_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span>
+    <span class="n">trees_grid</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">160</span><span class="p">,</span> <span class="mi">320</span><span class="p">),</span>
+    <span class="n">depth_grid</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+    <span class="n">X_val</span><span class="o">=</span><span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="o">=</span><span class="n">y_val</span><span class="p">,</span> <span class="n">teacher_latent_val</span><span class="o">=</span><span class="n">teacher_latent_val</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># pandas.DataFrame(rows) if you like tables</span>
+</code></pre></div>
+<p>Each row reports holdout Gini and retention versus the teacher, Spearman rank
+agreement, <code>exact_attribution</code>, the quantized model's JSON size, and a
+<em>measured</em> per-row exact-explanation cost. Read it like a cost curve: retention
+climbs steeply, then plateaus; pick the elbow. In the repository benchmark,
+120 trees at depth 2 retained 97.9% of a 300-tree teacher's Gini — beyond the
+plateau you pay linear size and explain time for basis points of fidelity.</p>
+<p>Always sweep on a holdout (<code>X_val=</code>) — in-sample retention flatters every
+configuration, and the output flags <code>in_sample: true</code> when you didn't.</p>
+<h2 id="choosing-depth-one-table-one-story">Choosing depth: one table, one story<a class="headerlink" href="#choosing-depth-one-table-one-story" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>depth</th>
+<th>Attribution</th>
+<th>Scorecard</th>
+<th>Fidelity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>exact, zero residual</td>
+<td><strong>exact classic scorecard</strong> (bin → points)</td>
+<td>lowest</td>
+</tr>
+<tr>
+<td><strong>2</strong> (default)</td>
+<td>exact, zero residual</td>
+<td>scorecard + explicit interaction grids</td>
+<td>good</td>
+</tr>
+<tr>
+<td>3+</td>
+<td>residual appears</td>
+<td>none exists</td>
+<td>highest</td>
+</tr>
+</tbody>
+</table>
+<p>Depth ≤ 2 is not a style preference — it is the boundary of two guarantees.
+The pairwise decomposition is <em>complete</em> for functions with no three-way
+interactions, which is precisely what depth ≤ 2 trees are; at depth 3 the
+leftover becomes a real, reported residual
+(<a href="../../concepts/attribution/">why</a>), and no clean scorecard exists for the
+same mathematical reason. The tooling enforces the boundary honestly rather
+than hiding it:</p>
+<ul>
+<li><code>train_whitebox</code> <strong>warns</strong> at <code>max_depth &gt; 2</code>;</li>
+<li>the artifact <strong>records</strong> <code>whitebox_max_depth</code> and <code>exact_attribution</code>;</li>
+<li>every explained decision <strong>reports</strong> its residual, and the waterfall draws
+  it as an explicit bar;</li>
+<li><code>decide()</code> <strong>refuses</strong> a nonzero residual on an artifact claiming exactness;</li>
+<li><code>build_scorecard</code> <strong>raises</strong> above depth 2.</li>
+</ul>
+<p>To <em>quantify</em> what depth 3 would cost you before committing, explain a sample
+and look at the residuals directly:</p>
+<div class="highlight"><pre><span></span><code><span class="n">residuals</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="nb">abs</span><span class="p">(</span><span class="n">decide</span><span class="p">(</span><span class="n">artifact3</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">include_contributions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">[</span><span class="s2">"attribution_residual_half_micro"</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="mi">1_000_000</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">X_sample</span>
+<span class="p">]</span>
+<span class="c1"># share of decisions with any unexplained remainder, and how large it gets</span>
+</code></pre></div>
+<h2 id="doesnt-a-bigger-whitebox-just-become-the-teacher">"Doesn't a bigger whitebox just become the teacher?"<a class="headerlink" href="#doesnt-a-bigger-whitebox-just-become-the-teacher" title="Permanent link">&para;</a></h2>
+<p>Only in the sense you want. More capacity converges toward the teacher's
+<em>predictions</em> while every compilation property — integer determinism, the
+hashed single artifact, SQL/COBOL export, sub-millisecond scoring — holds at
+any size. The one thing you can lose is exact attribution, and that is
+controlled solely by depth, not trees. The trade to actually manage is
+pragmatic: linear growth in artifact bytes and explanation milliseconds,
+which <code>sweep_whitebox</code> prices per configuration.</p>
+<h2 id="how-many-bands">How many bands?<a class="headerlink" href="#how-many-bands" title="Permanent link">&para;</a></h2>
+<p>Two philosophies, both shipped:</p>
+<p><strong>Discover K.</strong> <a href="../../concepts/bands/"><code>semantic_bands</code> and <code>governance_bands</code></a>
+return the number of bands the data can statistically <em>defend</em> — Jeffreys-CI
+separation between neighbors, no residual rank power within any band,
+bootstrap-certified. Feed them noise and they honestly return one band.</p>
+<p><strong>Sweep fixed K.</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">compileml.tune</span><span class="w"> </span><span class="kn">import</span> <span class="n">sweep_bands</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="n">sweep_bands</span><span class="p">(</span><span class="n">latent_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">k_grid</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>
+</code></pre></div>
+<p>Per K: band-ordinal Gini and retention, the Gini gap, the worst within-band
+AUC with its verdict, minimum band volume, monotonicity violations, and any
+integer-edge collisions (a K too fine for the display scale to represent —
+the build would refuse it anyway).</p>
+<h2 id="money-on-the-table-within-band-auc">Money on the table: within-band AUC<a class="headerlink" href="#money-on-the-table-within-band-auc" title="Permanent link">&para;</a></h2>
+<p>A band ladder discards rank information by design; the governed question is
+<em>how much</em> and <em>where</em>:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">compileml.bands</span><span class="w"> </span><span class="kn">import</span> <span class="n">band_efficiency</span>
+
+<span class="n">eff</span> <span class="o">=</span> <span class="n">band_efficiency</span><span class="p">(</span><span class="n">latent_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">artifact</span><span class="p">)</span>
+<span class="n">eff</span><span class="p">[</span><span class="s2">"gini_gap"</span><span class="p">]</span>        <span class="c1"># continuous Gini − band-ordinal Gini: the headline</span>
+<span class="n">eff</span><span class="p">[</span><span class="s2">"per_band"</span><span class="p">]</span>        <span class="c1"># n, bad rate, within-band AUC with bootstrap CI, verdict</span>
+<span class="n">eff</span><span class="p">[</span><span class="s2">"worst_band"</span><span class="p">]</span>      <span class="c1"># strongest refinement candidate</span>
+</code></pre></div>
+<p>Reading the per-band verdicts:</p>
+<ul>
+<li><strong>exhausted</strong> — CI upper bound ≤ 0.55: the score is used up inside this
+  band; splitting it further separates noise, not risk.</li>
+<li><strong>refinable</strong> — CI lower bound ≥ 0.55: the latent can still rank outcomes
+  inside the band; a finer cut there would separate risk your policy
+  currently treats as homogeneous. That is money on the table.</li>
+<li><strong>inconclusive</strong> — the interval spans both stories; more volume before
+  concluding anything.</li>
+</ul>
+<p>The same diagnostics attach to every validation run: check 4 of
+<a href="../validate/"><code>validate_artifact</code></a> reports <code>banding_gini_gap</code> and
+<code>worst_within_band_auc</code> whenever outcomes are supplied, advisory by default
+and gateable via <code>max_within_band_auc=</code> when your policy wants a hard limit.</p>
+<h2 id="producing-a-scorecard">Producing a scorecard<a class="headerlink" href="#producing-a-scorecard" title="Permanent link">&para;</a></h2>
+<p>At depth ≤ 2 the artifact <em>is</em> a points-based scorecard — exactly, not as an
+approximation:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">compileml.scorecard</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_scorecard</span><span class="p">,</span> <span class="n">scorecard_to_markdown</span>
+
+<span class="n">scorecard</span> <span class="o">=</span> <span class="n">build_scorecard</span><span class="p">(</span><span class="n">artifact</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">scorecard_to_markdown</span><span class="p">(</span><span class="n">scorecard</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">DISPLAY_NAMES</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>compileml<span class="w"> </span>scorecard<span class="w"> </span>decision.json<span class="w"> </span>--format<span class="w"> </span>csv<span class="w"> </span>--out<span class="w"> </span>scorecard.csv
+</code></pre></div>
+<p>Depth 1 collapses to the classic form — per feature, bin → points. Depth 2
+adds explicit pairwise interaction grids over the union of the relevant
+thresholds. Points are the artifact's own integers, and the identity</p>
+<div class="highlight"><pre><span></span><code>base_points + Σ main_effect(x) + Σ interaction(x) == raw_micro
+</code></pre></div>
+<p>holds bit-for-bit on every row (<code>score_from_scorecard</code> re-derives any
+decision from the printed tables alone — the test suite asserts it). Hand
+the CSV to a validator and they can reproduce production scores in a
+spreadsheet.</p>
+<p>Above depth 2, <code>build_scorecard</code> raises instead of approximating — the same
+boundary as exact attribution, for the same reason.</p>
+<h2 id="defaults-for-the-impatient">Defaults, for the impatient<a class="headerlink" href="#defaults-for-the-impatient" title="Permanent link">&para;</a></h2>
+<p><code>train_whitebox(n_estimators=30, max_depth=2)</code> and <code>n_bands=10</code> are sane
+starting points, proven in the repository's own benchmark and examples. The
+sweeps are for when "sane" needs to become "measured" — which, in a model
+governance file, it eventually does.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1868 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Compile tree-ensemble models into deterministic, auditable decision artifacts.">
+      
+      
+      
+        <link rel="canonical" href="https://orgoca.github.io/CompileML/ARTIFACT_SPEC/">
+      
+      
+        <link rel="prev" href="../faq/">
+      
+      
+        <link rel="next" href="../reference/api/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Artifact specification - CompileML</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#compileml-decision-artifact-specification-v2" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="CompileML" class="md-header__button md-logo" aria-label="CompileML" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CompileML
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Artifact specification
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/orgoca/CompileML" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    orgoca/CompileML
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="CompileML" class="md-nav__button md-logo" aria-label="CompileML" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    CompileML
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/orgoca/CompileML" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    orgoca/CompileML
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Determinism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/attribution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/bands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Risk bands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../howto/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tuning the compilation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../howto/reason-codes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reason codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../howto/visualize/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualize decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../howto/recalibrate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-churn recalibration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../howto/deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy (runtime, SQL, COBOL)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../howto/validate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validate before deploying
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Artifact specification
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Artifact specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-design-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Design goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-integer-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Integer conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Integer conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-rounding-half-away-from-zero" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Rounding: half away from zero
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-integer-division-with-half-away-rounding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Integer division with half-away rounding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-scales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Scales
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-document-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Document layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-scoring-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Scoring (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-band-assignment-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Band assignment (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-calibration-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Calibration (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-attribution-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Attribution (normative)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Attribution (normative)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-main-effects-and-pairwise-interactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Main effects and pairwise interactions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-contributions-in-half-micro-units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Contributions in half-micro units
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-residual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Residual
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-reconciliation-identity-the-auditable-invariant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Reconciliation identity (the auditable invariant)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-display-rounding-largest-remainder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5 Display rounding (largest remainder)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#76-reason-dictionary-and-reason-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.6 Reason dictionary and reason codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-missing-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Missing values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-hash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Hash
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-export-parity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Export parity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-determinism-statement-what-is-and-is-not-claimed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Determinism statement (what is and is not claimed)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-design-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Design goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-integer-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Integer conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Integer conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-rounding-half-away-from-zero" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Rounding: half away from zero
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-integer-division-with-half-away-rounding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Integer division with half-away rounding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-scales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Scales
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-document-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Document layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-scoring-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Scoring (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-band-assignment-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Band assignment (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-calibration-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Calibration (normative)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-attribution-normative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Attribution (normative)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Attribution (normative)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-main-effects-and-pairwise-interactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Main effects and pairwise interactions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-contributions-in-half-micro-units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Contributions in half-micro units
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-residual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Residual
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-reconciliation-identity-the-auditable-invariant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Reconciliation identity (the auditable invariant)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-display-rounding-largest-remainder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5 Display rounding (largest remainder)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#76-reason-dictionary-and-reason-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.6 Reason dictionary and reason codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-missing-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Missing values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-hash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Hash
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-export-parity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Export parity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-determinism-statement-what-is-and-is-not-claimed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Determinism statement (what is and is not claimed)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="compileml-decision-artifact-specification-v2">CompileML Decision Artifact — Specification v2<a class="headerlink" href="#compileml-decision-artifact-specification-v2" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> Draft (pre-0.1.0)
+<strong>Artifact type string:</strong> <code>compileml.decision_artifact</code>
+<strong>Schema version:</strong> <code>2</code></p>
+<p>This document is the normative contract for CompileML decision artifacts. Every
+runtime (Python, COBOL, SQL, or any future target) MUST implement the algorithms
+here exactly as written. If an implementation and this document disagree, the
+implementation is wrong.</p>
+<p>The keywords MUST, MUST NOT, SHOULD, and MAY are used as in RFC 2119.</p>
+<hr />
+<h2 id="1-design-goals">1. Design goals<a class="headerlink" href="#1-design-goals" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Bit-identical decisions everywhere.</strong> The same artifact and the same input
+   bytes produce the same integer outputs on every platform, language, and
+   hardware. This is achieved by doing <em>all arithmetic in integers</em>; the only
+   floating-point operations permitted at decision time are <strong>comparisons</strong>
+   (<code>x &lt;= threshold</code>), which are exact under IEEE 754 and involve no rounding.</li>
+<li><strong>Explanations that reconcile exactly.</strong> Every decision decomposes into
+   integer feature contributions that sum — exactly, in integer arithmetic —
+   to the decision. The reconciliation identity (§7.4) is a testable invariant,
+   not prose.</li>
+<li><strong>One deployed truth.</strong> Score, calibration, band ladder, feature contract,
+   and reason codes travel in a single hash-verified JSON document. There is
+   nothing else to version, and nothing to drift.</li>
+</ol>
+<h2 id="2-integer-conventions">2. Integer conventions<a class="headerlink" href="#2-integer-conventions" title="Permanent link">&para;</a></h2>
+<p>All integers are signed 64-bit. Implementations MUST NOT overflow int64 for
+artifacts within the limits in §10.</p>
+<h3 id="21-rounding-half-away-from-zero">2.1 Rounding: half away from zero<a class="headerlink" href="#21-rounding-half-away-from-zero" title="Permanent link">&para;</a></h3>
+<p>The only rounding rule in this specification. For real <code>x</code>:</p>
+<div class="highlight"><pre><span></span><code>rha(x) = sign(x) * floor(|x| + 0.5)
+</code></pre></div>
+<h3 id="22-integer-division-with-half-away-rounding">2.2 Integer division with half-away rounding<a class="headerlink" href="#22-integer-division-with-half-away-rounding" title="Permanent link">&para;</a></h3>
+<p>For integers <code>num</code> and <code>den</code> with <code>den &gt; 0</code>:</p>
+<div class="highlight"><pre><span></span><code>div_rha(num, den):
+    if num &gt;= 0:  return ( 2*num + den) // (2*den)
+    else:         return -((-2*num + den) // (2*den))
+</code></pre></div>
+<p>This computes <code>rha(num / den)</code> using only integer operations. All targets
+(Python <code>//</code>, COBOL <code>DIVIDE</code>, SQL integer division) MUST reproduce it exactly.</p>
+<h3 id="23-scales">2.3 Scales<a class="headerlink" href="#23-scales" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Field</th>
+<th>Default</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Display scale</td>
+<td><code>scale</code></td>
+<td><code>1000</code></td>
+<td><code>latent_int</code>, band <code>edges_int</code>, <code>impact_int</code></td>
+</tr>
+<tr>
+<td>Micro scale</td>
+<td><code>model.micro_scale</code></td>
+<td><code>1000000</code></td>
+<td>leaf values, score accumulation, attribution</td>
+</tr>
+<tr>
+<td>PD scale</td>
+<td>fixed</td>
+<td><code>1000000</code> (ppm)</td>
+<td>calibration output <code>pd_ppm</code></td>
+</tr>
+</tbody>
+</table>
+<p>Constraint: <code>micro_scale % scale == 0</code>. Define <code>ratio = micro_scale / scale</code>.</p>
+<p>Leaf values are quantized <strong>once, at compile time</strong>:</p>
+<div class="highlight"><pre><span></span><code>value_micro[leaf] = rha(leaf_value_float * learning_rate * micro_scale)
+base_micro        = rha(base_float * micro_scale)
+</code></pre></div>
+<p>After compilation the floats are discarded. The integer model <strong>is</strong> the model:
+parity, retention, and all downstream numbers are properties of the integer
+model, not of the float model it came from.</p>
+<h2 id="3-document-layout">3. Document layout<a class="headerlink" href="#3-document-layout" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>{
+  "artifact_type": "compileml.decision_artifact",
+  "schema_version": 2,
+  "scale": 1000,
+  "model": {
+    "kind": "tree_ensemble_int",
+    "micro_scale": 1000000,
+    "base_micro": 285110,
+    "n_features": 23,
+    "input_precision": "float64",                   // "float64" | "float32" (§4)
+    "trees": [
+      {
+        "feature":   [0, 3, -2, -2, 5, -2, -2],   // -2 = leaf sentinel
+        "threshold": [1.5, 0.42, 0.0, 0.0, 2.5, 0.0, 0.0],
+        "left":      [1, 2, -1, -1, 5, -1, -1],
+        "right":     [4, 3, -1, -1, 6, -1, -1],
+        "value_micro": [0, 0, -18342, 21077, 0, -4410, 33590]
+      }
+    ]
+  },
+  "calibration": {                                  // OPTIONAL (null allowed)
+    "mode": "linear_int",                           // or "step"
+    "f_micro": [1000, 52000, ...],                  // strictly increasing
+    "pd_ppm":  [4100, 61200, ...]                   // non-decreasing
+  },
+  "bands": {
+    "edges_int": [0, 11, 23, ..., 969],             // strictly increasing, display scale
+    "labels": ["G01", "G02", ...],                  // len == len(edges_int) - 1
+    "boundary": "left_closed_right_open"
+  },
+  "features": {
+    "names": ["LIMIT_BAL", ...],                    // scoring order
+    "baseline": [140000.0, ...],                    // float64; imputation + attribution reference
+    "missing_policy": "baseline",                   // "baseline" | "reject"
+    "display_names": {},                            // OPTIONAL
+    "meta": []                                      // OPTIONAL
+  },
+  "reasons": {                                      // OPTIONAL reason dictionary
+    "LIMIT_BAL": {
+      "code": "LOW_LIMIT",
+      "negative": "…",                              // shown when risk-increasing
+      "positive": "…",                              // shown when risk-decreasing
+      "suppress": false                             // OPTIONAL policy mask
+    }
+  },
+  "runtime": {
+    "attribution": "pairwise_interaction_int",
+    "top_k": 5,
+    "whitebox_max_depth": 2,                        // recorded; exactness depends on it
+    "exact_attribution": true                       // true iff whitebox_max_depth &lt;= 2
+  },
+  "metadata": {},                                   // free-form provenance
+  "artifact_hash": "sha256 hex of §9"
+}
+</code></pre></div>
+<p><code>feature[i] == -2</code> marks node <code>i</code> as a leaf; its <code>value_micro[i]</code> is the leaf
+payload. Interior nodes have <code>value_micro == 0</code>. Thresholds are float64 and
+MUST round-trip exactly through JSON (shortest-repr serialization).</p>
+<h2 id="4-scoring-normative">4. Scoring (normative)<a class="headerlink" href="#4-scoring-normative" title="Permanent link">&para;</a></h2>
+<p>Input: <code>x</code>, an array of float64 of length <code>n_features</code>, ordered by
+<code>features.names</code>, after missing-value handling (§8).</p>
+<div class="highlight"><pre><span></span><code>score_micro(x):
+    acc = base_micro
+    for each tree:
+        node = 0
+        while feature[node] != -2:
+            node = left[node] if x[feature[node]] &lt;= threshold[node] else right[node]
+        acc += value_micro[node]
+    return acc                        // "raw" score, may fall outside [0, micro_scale]
+
+latent_micro = clamp(score_micro(x), 0, micro_scale)
+latent_int   = div_rha(latent_micro, ratio)
+</code></pre></div>
+<p>Notes:</p>
+<ul>
+<li>The float comparison <code>x &lt;= threshold</code> is the <strong>only</strong> floating-point
+  operation. Comparisons are exact: no rounding, no accumulation, no
+  platform variance. Given identical input bytes, routing is identical
+  everywhere.</li>
+<li><strong>Input precision.</strong> If <code>model.input_precision</code> is <code>"float32"</code>, the runtime
+  MUST round every input value to IEEE binary32 (round-to-nearest-even) before
+  any comparison, then widen back to float64. This exists for models whose
+  source framework compares in float32 internally (XGBoost hist trees): the
+  compiler stores float32-adjusted thresholds, and quantizing the inputs makes
+  every conforming runtime reproduce the source model's routing exactly.
+  <code>"float64"</code> (the default, and always the case for distilled whiteboxes)
+  means inputs are used as given.</li>
+<li>Accumulation order is irrelevant (integer addition is associative), so
+  parallel or reordered implementations remain bit-identical.</li>
+</ul>
+<h2 id="5-band-assignment-normative">5. Band assignment (normative)<a class="headerlink" href="#5-band-assignment-normative" title="Permanent link">&para;</a></h2>
+<p>Bands partition the display-scale latent line, left-closed right-open:
+band <code>i</code> covers <code>[edges_int[i], edges_int[i+1])</code>; values below <code>edges_int[0]</code>
+fall in band 0, values at or above <code>edges_int[-1]</code> fall in the last band.</p>
+<div class="highlight"><pre><span></span><code>band_index(latent_int):
+    cutoffs = edges_int[1:-1]                 // interior edges only
+    idx = count of c in cutoffs with c &lt;= latent_int   // == bisect_right
+    return idx                                // already in [0, n_bands-1]
+</code></pre></div>
+<p>This is the single band-assignment algorithm. Implementations MUST NOT provide
+a parallel float-space path.</p>
+<h2 id="6-calibration-normative">6. Calibration (normative)<a class="headerlink" href="#6-calibration-normative" title="Permanent link">&para;</a></h2>
+<p>Input: <code>latent_micro</code> (clamped). Output: <code>pd_ppm</code>, an integer in <code>[0, 1000000]</code>.
+If <code>calibration</code> is null, <code>pd_ppm = div_rha(latent_micro * 1000000, micro_scale)</code>.</p>
+<p>With <code>k = len(f_micro)</code> (compile-time guarantees: <code>f_micro</code> strictly
+increasing, <code>pd_ppm</code> non-decreasing, <code>k &gt;= 1</code>):</p>
+<div class="highlight"><pre><span></span><code>calibrate(latent_micro):
+    if latent_micro &lt;= f_micro[0]:    return pd_ppm[0]
+    if latent_micro &gt;= f_micro[k-1]:  return pd_ppm[k-1]
+    hi = smallest index with f_micro[hi] &gt; latent_micro
+    lo = hi - 1
+    if mode == "step":
+        return pd_ppm[lo]
+    // mode == "linear_int"
+    num = (pd_ppm[hi] - pd_ppm[lo]) * (latent_micro - f_micro[lo])
+    den = f_micro[hi] - f_micro[lo]
+    return pd_ppm[lo] + div_rha(num, den)
+</code></pre></div>
+<p>Bounds: <code>num &lt;= 10^6 * 10^6 = 10^12</code>, well inside int64.</p>
+<h2 id="7-attribution-normative">7. Attribution (normative)<a class="headerlink" href="#7-attribution-normative" title="Permanent link">&para;</a></h2>
+<p>Attribution decomposes the <strong>raw</strong> (unclamped) score against the baseline row.
+Let <code>S(v) = score_micro(v)</code>, <code>full = S(x)</code>, <code>fbase = S(baseline)</code>, and <code>n</code> the
+number of features.</p>
+<h3 id="71-main-effects-and-pairwise-interactions">7.1 Main effects and pairwise interactions<a class="headerlink" href="#71-main-effects-and-pairwise-interactions" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>for j in 0..n-1:
+    d[j] = full - S(x with feature j set to baseline[j])          // integer micro
+
+for i &lt; j:
+    I[i][j] = full - S(x_i→base) - S(x_j→base) + S(x_{i,j}→base)  // integer micro
+
+Isum[j] = Σ_{i≠j} I[min(i,j)][max(i,j)]
+</code></pre></div>
+<h3 id="72-contributions-in-half-micro-units">7.2 Contributions in half-micro units<a class="headerlink" href="#72-contributions-in-half-micro-units" title="Permanent link">&para;</a></h3>
+<p>The Shapley-consistent allocation for a pairwise decomposition assigns each
+feature its main effect plus <strong>half</strong> of each interaction it participates in:
+<code>c_j = d_j − Isum_j / 2</code>. To keep this integral, contributions are carried in
+<strong>half-micro units</strong> (denominator <code>2 * micro_scale</code>):</p>
+<div class="highlight"><pre><span></span><code>c2[j] = 2*d[j] - Isum[j]              // integer, exact
+</code></pre></div>
+<h3 id="73-residual">7.3 Residual<a class="headerlink" href="#73-residual" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>residual2 = 2*(full - fbase) - Σ c2[j]
+</code></pre></div>
+<p>For a model whose trees have depth ≤ 2, <code>residual2 == 0</code> <strong>exactly</strong> — this is
+an arithmetic identity for functions with no interactions of order ≥ 3, and
+because every quantity is an integer there is no floating-point caveat. For
+deeper trees the residual is a real, reportable quantity. Compilers MUST record
+<code>runtime.whitebox_max_depth</code> and set <code>exact_attribution = (depth &lt;= 2)</code>;
+validators SHOULD fail an artifact claiming exactness whose residual is nonzero.</p>
+<h3 id="74-reconciliation-identity-the-auditable-invariant">7.4 Reconciliation identity (the auditable invariant)<a class="headerlink" href="#74-reconciliation-identity-the-auditable-invariant" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>2*(full - fbase)  ==  Σ c2[j]  +  residual2
+</code></pre></div>
+<p>Exact, in integers, always. When <code>exact_attribution</code> is true, additionally
+<code>residual2 == 0</code>. This identity is what an auditor re-computes.</p>
+<h3 id="75-display-rounding-largest-remainder">7.5 Display rounding (largest remainder)<a class="headerlink" href="#75-display-rounding-largest-remainder" title="Permanent link">&para;</a></h3>
+<p>Display contributions at the display scale must also sum exactly. Target sum
+<code>T = div_rha(2*(full - fbase) - residual2, 2*ratio)</code>. Naive per-item rounding
+of <code>c2[j] / (2*ratio)</code> can miss <code>T</code> by a few units, so allocate by largest
+remainder:</p>
+<div class="highlight"><pre><span></span><code>q[j] = floor_div(c2[j], 2*ratio)            // floor toward -inf
+r[j] = c2[j] - q[j]*(2*ratio)               // 0 &lt;= r[j] &lt; 2*ratio
+deficit = T - Σ q[j]                        // 0 &lt;= deficit &lt;= n
+give +1 to the `deficit` items with largest r[j];
+ties broken by lower feature index first.
+impact_int[j] = q[j] (+1 if selected)
+</code></pre></div>
+<p>Then <code>Σ impact_int == T</code> exactly, deterministically.</p>
+<h3 id="76-reason-dictionary-and-reason-codes">7.6 Reason dictionary and reason codes<a class="headerlink" href="#76-reason-dictionary-and-reason-codes" title="Permanent link">&para;</a></h3>
+<p><strong>The reason dictionary is user-supplied content, not something CompileML can
+invent.</strong> The compiler knows that <code>BILLS_PAID_LATE</code> pushed a decision up or
+down; only the institution knows how to say that to a customer. Human-readable
+reason codes therefore work exactly as well as the dictionary you provide.</p>
+<p>Each entry in the top-level <code>reasons</code> object maps a feature name (exactly as
+it appears in <code>features.names</code>) to:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Required</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>code</code></td>
+<td>recommended</td>
+<td>Stable machine code for the reason (e.g. <code>"LATE_PAYMENTS"</code>). Used in downstream systems and adverse-action records.</td>
+</tr>
+<tr>
+<td><code>negative</code></td>
+<td>recommended</td>
+<td>Customer-facing message when the feature is <strong>risk-increasing</strong> for this applicant (e.g. <em>"Recent payments were made after their due date."</em>)</td>
+</tr>
+<tr>
+<td><code>positive</code></td>
+<td>recommended</td>
+<td>Customer-facing message when the feature is <strong>risk-decreasing</strong> (e.g. <em>"Consistent on-time payment history."</em>)</td>
+</tr>
+<tr>
+<td><code>suppress</code></td>
+<td>optional</td>
+<td><code>true</code> excludes the feature from reason lists entirely (policy-masked features). Its contribution still exists and still reconciles.</td>
+</tr>
+</tbody>
+</table>
+<p>Selection and fallback rules:</p>
+<ul>
+<li>A contribution with <code>c2[j] &gt; 0</code> is <strong>risk-increasing</strong> (adverse); <code>&lt; 0</code> is
+  risk-decreasing. Zero contributions produce no reason.</li>
+<li>Features whose reason entry has <code>suppress: true</code> are excluded from reason
+  lists (they still appear in contributions).</li>
+<li><code>reasons_negative</code> = top <code>top_k</code> adverse by <code>c2</code> descending;
+  <code>reasons_positive</code> = top <code>top_k</code> favorable by <code>c2</code> ascending.
+  Ties broken by lower feature index.</li>
+<li>Message selection: adverse → entry <code>negative</code>, favorable → entry <code>positive</code>.</li>
+<li><strong>Fallback:</strong> a feature with no dictionary entry still produces a reason
+  block, with code <code>NEGATIVE_&lt;name&gt;</code> / <code>POSITIVE_&lt;name&gt;</code> and a generic message
+  naming the feature. Fallback output is mechanically correct but is <strong>not</strong>
+  suitable for consumer-facing adverse-action notices.</li>
+</ul>
+<p>Coverage requirements:</p>
+<ul>
+<li>Compilers MUST compute <code>reason_coverage</code> (fraction of <code>features.names</code> with
+  a dictionary entry), record it in <code>metadata</code>, and warn at compile time when
+  coverage is below 1.0, listing the uncovered features.</li>
+<li>Validators SHOULD surface reason coverage; deployments that emit
+  consumer-facing notices SHOULD require coverage of 1.0 for all
+  non-suppressed features.</li>
+</ul>
+<h2 id="8-missing-values">8. Missing values<a class="headerlink" href="#8-missing-values" title="Permanent link">&para;</a></h2>
+<p><code>features.missing_policy</code> is part of the contract:</p>
+<ul>
+<li><code>"baseline"</code> (default): before scoring, any missing input (<code>null</code>, <code>NaN</code>)
+  is replaced by <code>features.baseline[j]</code> — reproducing at decision time exactly
+  the imputation the compiler saw at training time.</li>
+<li><code>"reject"</code>: any missing input is an error; the runtime MUST refuse to score.</li>
+</ul>
+<p>Runtimes MUST NOT silently route NaN through tree comparisons.</p>
+<h2 id="9-hash">9. Hash<a class="headerlink" href="#9-hash" title="Permanent link">&para;</a></h2>
+<p><code>artifact_hash</code> = SHA-256 (hex) of the canonical JSON serialization of the
+document <strong>without</strong> the <code>artifact_hash</code> field: keys sorted lexicographically
+at every level, separators <code>(",", ":")</code>, UTF-8, floats in shortest-repr form.
+Loaders MUST verify the hash by default and refuse artifacts that fail.</p>
+<h2 id="10-limits">10. Limits<a class="headerlink" href="#10-limits" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Limit</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>micro_scale</code></td>
+<td>≤ 10^9</td>
+<td>keeps §6 products inside int64</td>
+</tr>
+<tr>
+<td>trees × max</td>
+<td>leaf_micro</td>
+<td></td>
+</tr>
+<tr>
+<td>features per artifact</td>
+<td>≤ 10^4</td>
+<td>attribution is O(n²) score calls</td>
+</tr>
+</tbody>
+</table>
+<h2 id="11-export-parity">11. Export parity<a class="headerlink" href="#11-export-parity" title="Permanent link">&para;</a></h2>
+<p>A conforming exporter (COBOL, SQL, Java, …) MUST emit logic that reproduces
+§4–§6 bit-for-bit: the same <code>value_micro</code> integers, the same <code>div_rha</code>, the
+same band cutoff rule. Because leaf values are integers in the artifact,
+"round each leaf then sum" versus "sum then round" can no longer diverge —
+there is nothing left to round. Threshold literals MUST be emitted with full
+precision (shortest round-trip repr); if a target cannot represent a threshold
+exactly, the artifact MUST be compiled with quantized thresholds so that every
+target, including Python, sees identical values.</p>
+<h2 id="12-determinism-statement-what-is-and-is-not-claimed">12. Determinism statement (what is and is not claimed)<a class="headerlink" href="#12-determinism-statement-what-is-and-is-not-claimed" title="Permanent link">&para;</a></h2>
+<p><strong>Claimed:</strong> identical input bytes + identical artifact ⇒ identical integer
+outputs (<code>latent_int</code>, <code>band</code>, <code>pd_ppm</code>, <code>impact_int[]</code>, reason codes) on any
+conforming runtime, any hardware, any language. No environment, library
+version, or accumulation order can change a decision.</p>
+<p><strong>Not claimed:</strong> that upstream feature pipelines produce identical float bytes
+across systems (that is the caller's contract), or that two <em>different</em>
+artifacts compiled from the same model are interchangeable — an artifact is
+identified by its hash, and the hash is the unit of governance.</p>
+<hr />
+<p><em>Changelog</em>
+- <strong>v2</strong> — integer-quantized leaves, integer calibration, half-micro exact
+  attribution with largest-remainder display rounding, missing-value policy,
+  hash-verified loads. Supersedes a pre-release float-scoring layout that
+  quantized only at the output boundary.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
