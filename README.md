@@ -11,15 +11,15 @@
 
 Risk teams are usually offered a bad choice.
 
-A traditional scorecard is transparent, reproducible, and deploys anywhere — and leaves predictive power on the table. A tree ensemble predicts better, then arrives with a Python environment, a serving stack, post-hoc explanations, and a model no validator can reproduce independently.
+A traditional scorecard is transparent, reproducible, and deploys anywhere, but leaves predictive power on the table. A tree ensemble predicts better, then arrives with a Python environment, a serving stack, post-hoc explanations, and a model no validator can reproduce independently.
 
 CompileML removes that choice.
 
-Train the strongest teacher you can — XGBoost, LightGBM, scikit-learn, anything that can be distilled. CompileML projects its predictive structure into a shallow, integer-valued whitebox and packages the complete decision into one hashed artifact: score, calibrated probability, risk bands, reason codes, attribution.
+Train the strongest teacher you can — XGBoost, LightGBM, NN. CompileML projects its predictive structure into a shallow, integer-valued whitebox and packages the complete decision into one hashed artifact: score, calibrated probability, risk bands, reason codes, attribution.
 
 Then the teacher is discarded. It was a means, not a deliverable, and it never reaches production.
 
-What ships instead is decision logic built from integer addition, comparison, and table lookup. It runs under CompileML's standard-library-only Python implementation — an ordinary application, a small Lambda, a batch job — or you export it as standalone SQL or COBOL and run it directly where the decision already happens. No XGBoost in production, no scikit-learn, no scoring service to operate. In exported form there is no model runtime at all.
+What ships instead is decision logic built from integer addition, comparison, and table lookup. It runs under CompileML's standard-library-only Python implementation, an ordinary application, a small Lambda, a batch job or you export it as standalone SQL or COBOL and run it directly where the decision already happens. No XGBoost in production, no scikit-learn, no scoring service to operate. In exported form there is no model runtime at all.
 
 This is not a lighter way to serve the black box. The black box was used as a teacher and then compiled out of the system.
 
