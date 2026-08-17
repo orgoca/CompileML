@@ -15,7 +15,7 @@ A traditional scorecard is transparent, reproducible, and deploys anywhere, but 
 
 CompileML removes that choice.
 
-Train the strongest teacher you can — XGBoost, LightGBM, NN. CompileML projects its predictive structure into a shallow, integer-valued whitebox and packages the complete decision into one hashed artifact: score, calibrated probability, risk bands, reason codes, attribution.
+Train the strongest teacher you can: XGBoost, LightGBM, NN. CompileML projects its predictive structure into a shallow, integer-valued whitebox and packages the complete decision into one hashed artifact: score, calibrated probability, risk bands, reason codes, attribution.
 
 Then the teacher is discarded. It was a means, not a deliverable, and it never reaches production.
 
