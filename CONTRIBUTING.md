@@ -14,7 +14,7 @@ infrastructure and something a risk function could actually adopt:
 
 | | |
 |---|---|
-| [#9](https://github.com/orgoca/CompileML/issues/9) | **Stability monitoring (PSI/CSI/drift).** The validation framework checks an artifact at a point in time; model risk management is about what happens next. |
+| [#9](https://github.com/orgoca/CompileML/issues/9) | **Stability monitoring.** Not another PSI implementation — the issue is explicit about what *not* to rebuild. The open work is decomposing score drift across features exactly, which the reconciliation identity makes possible and external tooling can only approximate. |
 | [#10](https://github.com/orgoca/CompileML/issues/10) | **Fair lending.** Disparate impact testing, plus disparity decomposition over the exact attributions — something the reconciliation identity makes possible here in a way it is not elsewhere. |
 
 Smaller entry points: [#17](https://github.com/orgoca/CompileML/issues/17)
