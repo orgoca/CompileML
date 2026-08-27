@@ -7,6 +7,19 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-27
+
+Monotone feature constraints — the first of the three adoption-gap items
+raised in review. A scorecard with a bin where more delinquency scores
+*better* is one a committee rejects on sight; this release makes the
+direction declarable, enforced at training, and — the part that matters for
+governance — **verified against the compiled trees rather than promised by
+the trainer**.
+
+Additive and backward-compatible: `schema_version` stays 2, the new artifact
+field is optional, and runtimes that predate it score constrained artifacts
+to identical integers (verified against the published 0.1.1 runtime).
+
 ### Added
 - Monotone feature constraints ([#8](https://github.com/orgoca/CompileML/issues/8)):
   `train_whitebox(monotone_constraints=...)` switches the whitebox backend to

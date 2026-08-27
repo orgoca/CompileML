@@ -212,6 +212,28 @@ def test_check9_fails_on_tampered_declaration(artifact):
     assert validate_artifact(doc)["checks"]["9_monotone_constraints"]["pass"]
 
 
+def test_recorded_constraints_are_inert_to_scoring(constrained_artifact, data):
+    """The declaration is governance metadata, never an input to a decision.
+
+    This is what makes the optional field backward-compatible: a runtime
+    predating it (or ignoring it) reaches identical integers, so
+    schema_version stays 2 and deployed runtimes need not move.
+    """
+    X, _, _ = data
+    stripped = json.loads(json.dumps(constrained_artifact))
+    del stripped["model"]["monotone_constraints"]
+    del stripped["artifact_hash"]
+    stripped["artifact_hash"] = canonical_hash(stripped)
+
+    for row in X[:25]:
+        row_f = [float(v) for v in row]
+        with_field = decide(constrained_artifact, row_f)
+        without = decide(stripped, row_f)
+        for key in ("latent_int", "band", "pd_ppm", "raw_micro"):
+            assert with_field[key] == without[key]
+        assert with_field["attribution"] == without["attribution"]
+
+
 # ------------------------------------------------- scorecard aggregate
 def test_scorecard_aggregate_report(constrained_artifact):
     scorecard = build_scorecard(constrained_artifact)
