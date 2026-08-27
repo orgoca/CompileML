@@ -169,6 +169,57 @@ spreadsheet.
 Above depth 2, `build_scorecard` raises instead of approximating — the same
 boundary as exact attribution, for the same reason.
 
+## Enforcing monotone directions
+
+A compiled scorecard with a bin where more delinquency scores *better* is a
+scorecard a committee rejects on sight — even when the wiggle is statistically
+justified. Declare the directions and the whitebox is trained with
+scikit-learn's `HistGradientBoostingRegressor`, which enforces them during
+tree growth:
+
+```python
+model, metrics = train_whitebox(
+    X, teacher_latent,
+    monotone_constraints={"UTIL": +1, "TENURE": -1},   # or a [-1, 0, +1, ...] list
+)
+artifact = build_artifact(
+    model, feature_names, baseline, edges,
+    monotone_constraints={"UTIL": +1, "TENURE": -1},
+    ...,
+)
+```
+
+Name-keyed dicts work at `train_whitebox` when `X` is a DataFrame; with bare
+arrays, key by index. Without constraints, nothing changes — the classic
+`GradientBoostingRegressor` path is untouched.
+
+The declaration at `build_artifact` is not a training-time promise passed
+along: the builder re-verifies the *quantized integer trees* against it,
+tree by tree, and refuses to emit the artifact on any violation — whatever
+trainer produced the model. The verified signs are recorded in the artifact
+(`model.monotone_constraints`, hash-covered), validation check 9 re-verifies
+them from the artifact alone, and at depth ≤ 2 the scorecard's own tables
+certify the aggregate direction (`scorecard_monotone_report`) — a check a
+validator can repeat in a spreadsheet.
+
+### The monotonicity premium, measured
+
+Constraints cost fidelity wherever the teacher genuinely wiggles, and the
+two backends also regularize differently (histogram binning, leaf-size
+defaults), so do not guess the cost — measure it:
+
+```python
+rows_free = sweep_whitebox(X, latent, y, X_val=Xv, y_val=yv, teacher_latent_val=lv)
+rows_mono = sweep_whitebox(X, latent, y, X_val=Xv, y_val=yv, teacher_latent_val=lv,
+                           monotone_constraints={"UTIL": +1, "TENURE": -1})
+```
+
+Diff the `gini_retention_pct` column at your chosen configuration. If the
+premium is small, the teacher's wiggle was noise and the constraint bought
+committee-credibility for free; if it is large, the teacher has learned a
+genuinely non-monotone pattern, and *that* is worth investigating before any
+constraint is imposed.
+
 ## Defaults, for the impatient
 
 `train_whitebox(n_estimators=30, max_depth=2)` and `n_bands=10` are sane

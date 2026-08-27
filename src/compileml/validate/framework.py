@@ -1,4 +1,4 @@
-"""Pre-deployment validation — eight checks run against the artifact itself.
+"""Pre-deployment validation — nine checks run against the artifact itself.
 
 The defining property of this framework: **every check exercises the same
 JSON document and the same runtime that production runs.** There is no
@@ -22,6 +22,9 @@ Checks (each reports pass/skipped plus evidence):
   7. explainability_stability  top-k reason sets stable under small input
                                perturbation, using the runtime's explainer
   8. reason_coverage           reason dictionary coverage of feature names
+  9. monotone_constraints      declared directions re-verified against the
+                               shipped integer trees (skipped when the
+                               artifact declares none)
 """
 
 from __future__ import annotations
@@ -69,7 +72,7 @@ def validate_artifact(
     require_full_reason_coverage: bool = False,
     seed: int = 42,
 ) -> dict:
-    """Run the eight-check framework. Checks lacking inputs skip, not fail.
+    """Run the nine-check framework. Checks lacking inputs skip, not fail.
 
     Args:
         artifact_or_path: Artifact dict or path to its JSON (paths get the
@@ -290,5 +293,23 @@ def validate_artifact(
         "uncovered_features": uncovered,
         "required_full": require_full_reason_coverage,
     }
+
+    # -------------------------------------------- 9 monotone constraints
+    cst = artifact["model"].get("monotone_constraints")
+    if cst:
+        from compileml.compile.monotone import verify_monotone_constraints
+
+        report = verify_monotone_constraints(artifact["model"], cst)
+        checks["9_monotone_constraints"] = {
+            "pass": bool(report["ok"]),
+            "skipped": False,
+            "constrained_features": [
+                names[i] for i, sign in enumerate(cst) if sign and i < len(names)
+            ],
+            "n_violations": int(report["n_violations"]),
+            "violations": report["violations"][:5],
+        }
+    else:
+        checks["9_monotone_constraints"] = {"pass": True, "skipped": True}
 
     return {"all_pass": all(c["pass"] for c in checks.values()), "checks": checks}

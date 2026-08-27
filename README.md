@@ -305,7 +305,8 @@ It checks:
 5. bad-rate monotonicity;
 6. band-ladder churn;
 7. explanation stability;
-8. reason-code coverage.
+8. reason-code coverage;
+9. declared monotone directions, re-verified against the shipped trees.
 
 These checks run against the compiled artifact through the same runtime used for production decisions. There is no separate notebook implementation allowed to become "almost the same" over time.
 

@@ -1,6 +1,7 @@
 """Tree extraction from fitted models into portable float arrays.
 
-Supported families: sklearn gradient boosting, XGBoost, LightGBM.
+Supported families: sklearn gradient boosting (classic and hist),
+XGBoost, LightGBM.
 Extraction produces float trees plus (base, learning_rate); quantization
 to the integer artifact model happens afterwards in ``quantize.py``.
 
@@ -29,7 +30,7 @@ class ExtractedModel:
     trees: list[dict]  # feature/threshold/left/right/value lists per tree
     base: float
     learning_rate: float
-    family: str  # "sklearn" | "xgboost" | "lightgbm"
+    family: str  # "sklearn" | "sklearn_hist" | "xgboost" | "lightgbm"
     input_precision: str = "float64"
     n_features: int = 0
     notes: list[str] = field(default_factory=list)
@@ -58,6 +59,14 @@ def score_float(extracted: ExtractedModel, x) -> float:
 
 def _is_sklearn_gbm(model) -> bool:
     return hasattr(model, "estimators_")
+
+
+def _is_sklearn_hist(model) -> bool:
+    try:
+        from sklearn.ensemble import HistGradientBoostingRegressor
+    except ImportError:  # pragma: no cover
+        return False
+    return isinstance(model, HistGradientBoostingRegressor)
 
 
 def _is_xgboost(model) -> bool:
@@ -104,6 +113,81 @@ def _extract_sklearn(model) -> ExtractedModel:
         )
     n_features = int(model.n_features_in_)
     return ExtractedModel(trees, base, lr, "sklearn", "float64", n_features)
+
+
+# ---------------------------------------------------------------------------
+# sklearn HistGradientBoosting
+# ---------------------------------------------------------------------------
+
+
+def _extract_sklearn_hist(model) -> ExtractedModel:
+    """HistGradientBoostingRegressor — the constrained-whitebox backend.
+
+    Walks the private ``_predictors`` structure (version-fragile by
+    nature; the random-row parity gate in ``validate_extraction`` turns
+    any sklearn-internals change into a loud failure instead of silent
+    drift). Leaf values arrive pre-shrunk, so ``learning_rate`` is 1.0;
+    the base is ``_baseline_prediction``. Thresholds are float64 and the
+    split convention is ``x <= threshold -> left``, matching ours.
+    """
+    n_features = int(model.n_features_in_)
+    is_cat = getattr(model, "is_categorical_", None)
+    if is_cat is not None and any(is_cat):
+        # Categorical splits are bitset-based AND remap feature_idx inside
+        # the predictor nodes — both break the artifact's numeric-threshold
+        # tree shape, so refuse at the model level before touching nodes.
+        raise ValueError(
+            "categorical splits in HistGradientBoosting are not supported; "
+            "encode categoricals numerically before distilling"
+        )
+    trees = []
+    missing_right_nodes = 0
+    for predictors in model._predictors:
+        if len(predictors) != 1:
+            raise ValueError("multi-output HistGradientBoosting models are not supported")
+        nodes = predictors[0].nodes
+        n = len(nodes)
+        feature = [LEAF] * n
+        threshold = [0.0] * n
+        left = [-1] * n
+        right = [-1] * n
+        value = [0.0] * n
+        for i in range(n):
+            node = nodes[i]
+            if bool(node["is_leaf"]):
+                value[i] = float(node["value"])
+                continue
+            if bool(node["is_categorical"]):
+                raise ValueError(
+                    "categorical splits in HistGradientBoosting are not supported; "
+                    "encode categoricals numerically before distilling"
+                )
+            feature[i] = int(node["feature_idx"])
+            threshold[i] = float(node["num_threshold"])
+            left[i] = int(node["left"])
+            right[i] = int(node["right"])
+            if not bool(node["missing_go_to_left"]):
+                missing_right_nodes += 1
+        trees.append(
+            {
+                "feature": feature,
+                "threshold": threshold,
+                "left": left,
+                "right": right,
+                "value": value,
+            }
+        )
+    notes: list[str] = []
+    if missing_right_nodes:
+        # Unlike XGBoost, HGB records a routing direction on every split even
+        # when training saw no NaN, so this is a note, not a warning: the
+        # artifact has no missing branch either way — missing_policy governs.
+        notes.append(
+            f"{missing_right_nodes} split(s) route missing values right in the source "
+            "model; the artifact has no missing branch (missing_policy governs)."
+        )
+    base = float(np.ravel(model._baseline_prediction)[0])
+    return ExtractedModel(trees, base, 1.0, "sklearn_hist", "float64", n_features, notes)
 
 
 # ---------------------------------------------------------------------------
@@ -255,6 +339,10 @@ def _extract_lightgbm(model) -> ExtractedModel:
 
 def extract_trees(model) -> ExtractedModel:
     """Extract a fitted model into float tree arrays; dispatches on family."""
+    if _is_sklearn_hist(model):
+        extracted = _extract_sklearn_hist(model)
+        validate_extraction(extracted, model)
+        return extracted
     if _is_sklearn_gbm(model):
         return _extract_sklearn(model)
     if _is_xgboost(model):
@@ -292,6 +380,9 @@ def validate_extraction(
         booster = model.booster_ if hasattr(model, "booster_") else model
         X = rng.standard_normal((n_val, extracted.n_features)).astype(np.float64)
         ref = np.asarray(booster.predict(X, raw_score=True), dtype=float)
+    elif extracted.family == "sklearn_hist":
+        X = rng.standard_normal((n_val, extracted.n_features)).astype(np.float64)
+        ref = np.asarray(model.predict(X), dtype=float)
     else:
         return  # sklearn covered by unit tests against model.predict
 

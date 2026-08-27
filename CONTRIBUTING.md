@@ -9,12 +9,11 @@ The [open issues](https://github.com/orgoca/CompileML/issues) are written to be
 picked up: each one states the problem, why it matters in a regulated lending
 context, a proposed approach, acceptance criteria, and the files involved.
 
-Three of them are, in my view, what stands between this being interesting
+Two of them are, in my view, what stands between this being interesting
 infrastructure and something a risk function could actually adopt:
 
 | | |
 |---|---|
-| [#8](https://github.com/orgoca/CompileML/issues/8) | **Monotone feature constraints.** Today the distilled whitebox cannot enforce them, so a compiled scorecard may show a bin where more delinquency scores *better*. That is a scorecard a committee rejects on sight. |
 | [#9](https://github.com/orgoca/CompileML/issues/9) | **Stability monitoring (PSI/CSI/drift).** The validation framework checks an artifact at a point in time; model risk management is about what happens next. |
 | [#10](https://github.com/orgoca/CompileML/issues/10) | **Fair lending.** Disparate impact testing, plus disparity decomposition over the exact attributions — something the reconciliation identity makes possible here in a way it is not elsewhere. |
 

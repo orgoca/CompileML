@@ -50,7 +50,7 @@ handled per the artifact's missing policy.
 compileml validate decision.json --csv holdout.csv --y-col DEFAULT --require-reasons
 ```
 
-Runs the [eight-check framework](../howto/validate.md); prints the full
+Runs the [nine-check framework](../howto/validate.md); prints the full
 evidence report as JSON; exits non-zero if any check fails — suitable as a CI
 deployment gate.
 

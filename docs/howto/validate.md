@@ -24,7 +24,7 @@ Or gate a pipeline on the CLI's exit code:
 compileml validate decision.json --csv holdout.csv --y-col DEFAULT --require-reasons
 ```
 
-## The eight checks
+## The nine checks
 
 | # | Check | What it proves | Needs |
 |---|---|---|---|
@@ -36,9 +36,11 @@ compileml validate decision.json --csv holdout.csv --y-col DEFAULT --require-rea
 | 6 | churn baseline | bootstrap ladder stability, measured with fixed-point edges | X + latent_train |
 | 7 | explainability stability | top-k reason sets stable under small input perturbation, using the runtime's explainer | X |
 | 8 | reason coverage | dictionary coverage of feature names; optional hard gate | nothing |
+| 9 | monotone constraints | declared directions re-verified against the shipped integer trees ([spec §3.1](../ARTIFACT_SPEC.md)) | nothing |
 
 Checks lacking inputs **skip** (reported as skipped, not passed silently);
-check 1 and check 8 always run.
+checks 1 and 8 always run, and check 9 runs whenever the artifact declares
+constraints — it needs no data because the trees themselves are the evidence.
 
 ## Evidence, not verdicts
 
