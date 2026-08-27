@@ -46,6 +46,20 @@ or `compileml scorecard decision.json --format csv`. The printed tables
 re-sum to every production decision bit-for-bit; a validator can reproduce
 scores in a spreadsheet.
 
+### Can I force a direction — "more delinquency must never score better"?
+
+Yes. Pass `monotone_constraints` (per-feature −1/0/+1) to `train_whitebox`
+and the whitebox is trained with scikit-learn's histogram GBM, which enforces
+directions during growth. Pass the same declaration to `build_artifact` and
+it is *re-verified against the compiled integer trees* — the build refuses on
+any violation, whatever trainer produced the model — then recorded in the
+artifact under the hash. Validation check 9 repeats the verification from the
+artifact alone, and at depth ≤ 2 the printed scorecard certifies the
+aggregate direction (`scorecard_monotone_report`). Constraints cost fidelity
+wherever the teacher genuinely wiggles; [measure the
+premium](howto/tuning.md#the-monotonicity-premium-measured) instead of
+guessing it.
+
 ### Why not just use SHAP?
 
 TreeSHAP is exact for trees and a fine analysis tool — the differences are

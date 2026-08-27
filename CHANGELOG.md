@@ -7,6 +7,20 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- Monotone feature constraints ([#8](https://github.com/orgoca/CompileML/issues/8)):
+  `train_whitebox(monotone_constraints=...)` switches the whitebox backend to
+  `HistGradientBoostingRegressor` (extraction parity tested; the
+  unconstrained `GradientBoostingRegressor` path is byte-identical to
+  before). `build_artifact(monotone_constraints=...)` verifies the declared
+  directions against the compiled integer trees — refusing to build on any
+  violation, independent of the trainer — and records them as
+  `model.monotone_constraints` (hash-covered, spec §3.1). Validation gains
+  check 9, re-verifying the declaration from the artifact alone; at depth
+  ≤ 2, `scorecard_monotone_report` certifies the aggregate direction on the
+  printed scorecard tables. `sweep_whitebox(monotone_constraints=...)`
+  measures the monotonicity premium.
+
 ## [0.1.1] - 2026-08-16
 
 First complete release. Supersedes 0.1.0, whose wheel carried a stale

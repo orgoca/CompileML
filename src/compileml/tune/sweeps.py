@@ -45,6 +45,7 @@ def sweep_whitebox(
     X_val=None,
     y_val=None,
     teacher_latent_val=None,
+    monotone_constraints=None,
     explain_timing_rows: int = 3,
 ) -> list[dict]:
     """Grid-sweep whitebox capacity; measure what each configuration buys.
@@ -56,6 +57,10 @@ def sweep_whitebox(
 
     Supply a holdout (``X_val`` / ``y_val`` / ``teacher_latent_val``) for
     honest numbers; in-sample retention flatters every configuration.
+
+    Pass ``monotone_constraints`` to sweep the constrained backend instead —
+    run both and diff the retention column to measure the monotonicity
+    premium before committing to it.
     """
     X_arr = np.asarray(X, dtype=float)
     t_lat = np.asarray(teacher_latent, dtype=float).reshape(-1)
@@ -85,6 +90,7 @@ def sweep_whitebox(
                     max_depth=depth,
                     learning_rate=learning_rate,
                     random_state=random_state,
+                    monotone_constraints=monotone_constraints,
                 )
             latent_eval = np.clip(model.predict(X_eval), 0.0, 1.0)
             gini = 2 * float(roc_auc_score(y_eval, latent_eval)) - 1
@@ -113,6 +119,7 @@ def sweep_whitebox(
                     "exact_attribution": depth <= 2,
                     "model_kb": round(model_kb, 1),
                     "explain_ms_per_row": round(float(np.median(times)), 2),
+                    "constrained": monotone_constraints is not None,
                     "in_sample": in_sample,
                 }
             )

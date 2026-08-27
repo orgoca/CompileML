@@ -8,6 +8,12 @@
 
 ::: compileml.compile.quantize_model
 
+::: compileml.compile.normalize_constraints
+
+::: compileml.compile.verify_monotone_constraints
+
+::: compileml.compile.scorecard_monotone_report
+
 ## Bands
 
 ::: compileml.bands.quantile_bands

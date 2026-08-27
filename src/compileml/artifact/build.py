@@ -11,6 +11,7 @@ import numpy as np
 from compileml import __version__
 from compileml.artifact.calibration import fit_isotonic_table
 from compileml.compile.extract import extract_trees, score_float
+from compileml.compile.monotone import normalize_constraints, verify_monotone_constraints
 from compileml.compile.quantize import (
     max_depth,
     quantization_error_bound,
@@ -52,6 +53,7 @@ def build_artifact(
     display_names: dict | None = None,
     feature_meta: list | None = None,
     missing_policy: str = "baseline",
+    monotone_constraints=None,
     metadata: dict | None = None,
     scale: int = 1000,
     micro_scale: int = 1_000_000,
@@ -82,6 +84,13 @@ def build_artifact(
             for consumer-facing notices. Coverage below 100% warns and is
             recorded in metadata (spec §7.6).
         missing_policy: "baseline" (impute at decision time) or "reject".
+        monotone_constraints: Declared directions per feature: a sequence of
+            -1/0/+1 in feature order, or a dict keyed by feature name or
+            index. The compiled integer trees are *verified* against the
+            declaration (spec §3.1) — any violation raises, whatever
+            trainer produced the model — and the signs are recorded in the
+            artifact under ``model.monotone_constraints``, covered by the
+            hash. Validation check 9 re-verifies on the artifact alone.
         X_sample: Optional sample rows; enables the measured quantization
             report and the latent-range check.
 
@@ -118,6 +127,22 @@ def build_artifact(
         for tree in extracted.trees:
             tree["threshold"] = [round(t, int(threshold_decimals)) for t in tree["threshold"]]
     model_int = quantize_model(extracted, micro_scale=micro_scale)
+
+    # --- monotone constraints: verify against the shipped trees, then record --
+    cst = normalize_constraints(monotone_constraints, len(names), feature_names=names)
+    if cst is not None:
+        report = verify_monotone_constraints(model_int, cst)
+        if not report["ok"]:
+            constrained = [names[i] for i, sign in enumerate(cst) if sign]
+            raise ValueError(
+                f"monotone constraint violated by the compiled trees: "
+                f"{report['n_violations']} violation(s) across {constrained}. "
+                "First examples: "
+                f"{report['violations'][:3]}. Retrain with "
+                "train_whitebox(..., monotone_constraints=...) to enforce them."
+            )
+        model_int["monotone_constraints"] = cst
+
     depth = max_depth(model_int)
     if depth > 2:
         warnings.warn(

@@ -29,7 +29,10 @@ def fitted():
     X = RNG.standard_normal((N, P))
     teacher = 1.0 / (1.0 + np.exp(-(1.3 * X[:, 0] + 0.9 * X[:, 1] - 0.7 * X[:, 2])))
     y = (RNG.random(N) < teacher).astype(int)
-    model, _ = train_whitebox(X, teacher, n_estimators=60, random_state=1)
+    # The teacher is exactly monotone in x0/x1/x2, so the fixture declares it:
+    # every one of the nine checks then runs (check 9 skips when undeclared).
+    cst = [1, 1, -1, 0, 0, 0]
+    model, _ = train_whitebox(X, teacher, n_estimators=60, random_state=1, monotone_constraints=cst)
     latent = np.clip(model.predict(X), 0, 1)
     spec = monotone_quantile_bands(latent, y, n_bands=8)
     artifact = build_artifact(
@@ -40,6 +43,7 @@ def fitted():
         calibration_latent=latent,
         calibration_y=y,
         reasons=REASONS,
+        monotone_constraints=cst,
         X_sample=X[:200],
     )
     return X, y, model, latent, artifact
@@ -58,6 +62,7 @@ def test_all_checks_pass(fitted):
     assert report["all_pass"], {k: v for k, v in report["checks"].items() if not v["pass"]}
     assert not any(c["skipped"] for c in report["checks"].values())
     assert report["checks"]["8_reason_coverage"]["coverage"] == 1.0
+    assert report["checks"]["9_monotone_constraints"]["constrained_features"] == ["x0", "x1", "x2"]
 
 
 def test_checks_skip_without_inputs(fitted):

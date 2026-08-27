@@ -57,6 +57,7 @@ def cmd_inspect(args) -> int:
         },
         "calibration_mode": (artifact.get("calibration") or {}).get("mode"),
         "missing_policy": artifact["features"].get("missing_policy"),
+        "monotone_constraints": artifact["model"].get("monotone_constraints"),
         "reason_coverage": meta.get("reason_coverage"),
         "model_family": meta.get("model_family"),
         "compileml_version": meta.get("compileml_version"),
@@ -252,7 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", help="output file (default: stdout)")
     p.set_defaults(func=cmd_scorecard)
 
-    p = sub.add_parser("validate", help="run the 8-check validation framework")
+    p = sub.add_parser("validate", help="run the 9-check validation framework")
     p.add_argument("artifact")
     p.add_argument("--csv", help="validation CSV (features + outcome)")
     p.add_argument("--y-col", help="outcome column name in --csv")

@@ -96,7 +96,8 @@ model, not of the float model it came from.
         "right":     [4, 3, -1, -1, 6, -1, -1],
         "value_micro": [0, 0, -18342, 21077, 0, -4410, 33590]
       }
-    ]
+    ],
+    "monotone_constraints": [1, 0, -1, ...]         // OPTIONAL (§3.1)
   },
   "calibration": {                                  // OPTIONAL (null allowed)
     "mode": "linear_int",                           // or "step"
@@ -137,6 +138,22 @@ model, not of the float model it came from.
 `feature[i] == -2` marks node `i` as a leaf; its `value_micro[i]` is the leaf
 payload. Interior nodes have `value_micro == 0`. Thresholds are float64 and
 MUST round-trip exactly through JSON (shortest-repr serialization).
+
+### 3.1 Monotone constraints (optional)
+
+`model.monotone_constraints`, when present, is a list of length
+`n_features` over `{-1, 0, +1}`: the declared direction of the compiled
+score in each feature (+1 non-decreasing, −1 non-increasing, 0
+unconstrained). The field is covered by the hash (§9) like everything
+else.
+
+The declaration is a *verified property of the shipped trees*, not a
+training-time promise: builders MUST NOT emit the field unless the
+quantized ensemble satisfies it (CompileML re-verifies tree-by-tree at
+build and refuses otherwise), and validators re-verify it from the
+artifact alone — validation check 9. Runtimes ignore the field; it
+changes no decision, only what can be claimed about them. Absent field
+means no directions are declared.
 
 ## 4. Scoring (normative)
 
@@ -376,6 +393,9 @@ identified by its hash, and the hash is the unit of governance.
 ---
 
 *Changelog*
+- **v2, additive** — optional `model.monotone_constraints` (§3.1): declared,
+  build-verified monotone directions. Absent field means unconstrained;
+  `schema_version` unchanged.
 - **v2** — integer-quantized leaves, integer calibration, half-micro exact
   attribution with largest-remainder display rounding, missing-value policy,
   hash-verified loads. Supersedes a pre-release float-scoring layout that
