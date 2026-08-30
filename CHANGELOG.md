@@ -7,6 +7,17 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-30
+
+Two yardsticks instead of one. Retention against a teacher measures the
+distance to a ceiling and is structurally incapable of reporting that a
+handful of logistic coefficients outscored the compiled whitebox. This
+release adds the floor, and makes the training target something you
+measure rather than assume.
+
+Additive throughout: existing sweeps produce the same grid, every
+positional call site is unchanged, and no artifact schema field moves.
+
 ### Added
 - `compileml.reference`: a weight-of-evidence logistic regression used as a
   **floor**. `gini_retention_pct` measures distance to a teacher ceiling and
