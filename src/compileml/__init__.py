@@ -16,6 +16,6 @@ from compileml.runtime import decide, load_artifact, verify_artifact
 # this attribute at build time (setuptools dynamic version), so the wheel
 # metadata, `compileml.__version__`, `compileml inspect`, and the
 # `compileml_version` recorded inside every artifact can never disagree.
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = ["decide", "load_artifact", "verify_artifact", "__version__"]
