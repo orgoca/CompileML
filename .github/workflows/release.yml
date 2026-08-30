@@ -13,6 +13,8 @@ on:
 
 jobs:
   build:
+    # Runs for any release: building the package is a cheap sanity check even
+    # when nothing will be published.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +46,13 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
   publish-pypi:
-    if: github.event_name == 'release'
+    # Only version tags publish. A release is also how non-code assets are
+    # distributed — the credit panel behind compileml.datasets is attached to
+    # the data-v1 tag — and publishing the current source to PyPI is not a
+    # sensible response to one of those. PyPI refuses to reuse a filename, so
+    # the failure was loud rather than damaging, but the job should never
+    # have been offered in the first place.
+    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
     needs: build
     runs-on: ubuntu-latest
     environment: pypi
