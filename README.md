@@ -306,7 +306,8 @@ It checks:
 6. band-ladder churn;
 7. explanation stability;
 8. reason-code coverage;
-9. declared monotone directions, re-verified against the shipped trees.
+9. declared monotone directions, re-verified against the shipped trees;
+10. that the artifact out-scores a reference model on the same data.
 
 These checks run against the compiled artifact through the same runtime used for production decisions. There is no separate notebook implementation allowed to become "almost the same" over time.
 

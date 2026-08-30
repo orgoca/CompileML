@@ -8,6 +8,7 @@ import pytest
 from compileml.artifact import build_artifact, recalibrate_artifact, save_artifact
 from compileml.bands import monotone_quantile_bands
 from compileml.compile import train_whitebox
+from compileml.reference import fit_reference
 from compileml.runtime import decide, verify_artifact
 from compileml.validate import validate_artifact
 
@@ -49,7 +50,13 @@ def fitted():
     return X, y, model, latent, artifact
 
 
-def test_all_checks_pass(fitted):
+@pytest.fixture(scope="module")
+def reference(fitted):
+    X, y, *_ = fitted
+    return fit_reference(X, y, feature_names=FEATURES)
+
+
+def test_all_checks_pass(fitted, reference):
     X, y, model, latent, artifact = fitted
     report = validate_artifact(
         artifact,
@@ -58,6 +65,7 @@ def test_all_checks_pass(fitted):
         model=model,
         latent_train=latent,
         require_full_reason_coverage=True,
+        reference=reference,  # check 10 skips without one
     )
     assert report["all_pass"], {k: v for k, v in report["checks"].items() if not v["pass"]}
     assert not any(c["skipped"] for c in report["checks"].values())

@@ -7,6 +7,34 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- `compileml.reference`: a weight-of-evidence logistic regression used as a
+  **floor**. `gini_retention_pct` measures distance to a teacher ceiling and
+  is structurally incapable of reporting that a handful of logistic
+  coefficients scored higher; this supplies the other side of the comparison.
+  `fit_reference` bins each feature with a shallow supervised tree, encodes
+  WOE, and picks the regularization strength by cross-validation with the
+  tables refit inside every fold. It is a sanity floor, not a challenger
+  model — `reference=` accepts a bare Gini float everywhere, so a champion
+  scorecard's number can be used instead.
+- `sweep_whitebox(reference=...)` adds `reference_gini`,
+  `gini_vs_reference_pct` and `beats_reference` to every row, and now warns
+  when it reports teacher retention with no floor beside it.
+- Validation **check 10, reference floor**: the artifact must out-score a
+  reference on the same data. Advisory by default, gated with
+  `require_reference_floor=True` (the `max_within_band_auc` precedent).
+- `sweep_whitebox(alpha_grid=...)` sweeps the training *target* across
+  `alpha * y + (1 - alpha) * teacher_latent`, so distillation becomes a
+  measured choice rather than an assumption. Defaults to `(0.0,)` — pure
+  distillation, the existing behavior. Passing `teacher_latent=None` drops
+  the teacher entirely and forces training on labels.
+
+### Changed
+- `train_whitebox`'s second parameter is now `target`, since labels and
+  label/teacher blends are equally valid targets. `teacher_latent=` still
+  works as a keyword and warns with `DeprecationWarning`; every positional
+  call is unaffected.
+
 ## [0.2.1] - 2026-08-30
 
 A correctness fix. Compiling a gradient boosting *classifier* produced an

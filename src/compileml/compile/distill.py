@@ -25,7 +25,7 @@ from compileml.compile.monotone import normalize_constraints
 
 def train_whitebox(
     X,
-    teacher_latent,
+    target=None,
     *,
     n_estimators: int = 30,
     max_depth: int = 2,
@@ -33,10 +33,18 @@ def train_whitebox(
     random_state: int = 42,
     loss: str = "squared_error",
     monotone_constraints=None,
+    teacher_latent=None,
 ):
-    """Fit a whitebox GBM to a teacher's latent scores.
+    """Fit a whitebox GBM to a target.
 
-    Returns (model, metrics) where metrics quantifies distillation fidelity
+    ``target`` is any per-row vector to regress onto: a teacher's latent
+    probabilities (distillation), the binary labels themselves, or a blend
+    of the two. Distillation is a choice here, not an assumption — at a
+    depth-2 budget, fitting a soft target can spend capacity on teacher
+    noise instead of outcome, so it is worth sweeping rather than assuming
+    (``sweep_whitebox(alpha_grid=...)``).
+
+    Returns (model, metrics) where metrics quantifies fidelity to the target
     on the training data (pearson, spearman, mae, rmse, prediction range).
 
     ``monotone_constraints`` takes a per-feature sequence of -1/0/+1 or a
@@ -45,6 +53,20 @@ def train_whitebox(
     the backend to ``HistGradientBoostingRegressor``; ``None`` (or all
     zeros) keeps the classic ``GradientBoostingRegressor``.
     """
+    if teacher_latent is not None:
+        if target is not None:
+            raise TypeError("pass target or teacher_latent, not both")
+        warnings.warn(
+            "teacher_latent= is deprecated and will be removed in a future release; "
+            "the parameter is now called target=, since labels and label/teacher "
+            "blends are equally valid targets.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        target = teacher_latent
+    if target is None:
+        raise TypeError("train_whitebox() missing required argument: 'target'")
+
     if max_depth > 2:
         warnings.warn(
             f"max_depth={max_depth} > 2: pairwise attribution will not be exact and "
@@ -53,7 +75,7 @@ def train_whitebox(
         )
 
     X_arr = np.asarray(X, dtype=float)
-    y = np.asarray(teacher_latent, dtype=float).reshape(-1)
+    y = np.asarray(target, dtype=float).reshape(-1)
     feature_names = list(X.columns) if hasattr(X, "columns") else None
     cst = normalize_constraints(monotone_constraints, X_arr.shape[1], feature_names=feature_names)
     if cst is not None:

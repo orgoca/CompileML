@@ -14,6 +14,12 @@
 
 ::: compileml.compile.scorecard_monotone_report
 
+## Reference floor
+
+::: compileml.reference.fit_reference
+
+::: compileml.reference.reference_gini
+
 ## Bands
 
 ::: compileml.bands.quantile_bands

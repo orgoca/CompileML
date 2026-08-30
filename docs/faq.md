@@ -60,6 +60,27 @@ wherever the teacher genuinely wiggles; [measure the
 premium](howto/tuning.md#the-monotonicity-premium-measured) instead of
 guessing it.
 
+### My whitebox keeps 95% of the teacher. Is that good?
+
+It is half an answer. Retention measures distance to a ceiling and cannot
+tell you the artifact is being beaten by a logistic regression on the same
+data — which does happen, particularly at depth 2 where capacity is the
+binding constraint. Fit the other side of the comparison with
+`compileml.reference.fit_reference` (or pass your champion scorecard's Gini
+as a plain float) and every sweep row carries the floor beside the ceiling.
+Validation check 10 applies the same comparison to a built artifact. See
+[the tuning guide](howto/tuning.md#the-floor-what-should-the-whitebox-beat).
+
+### Should I distil from a teacher, or train on labels directly?
+
+Measure it rather than assuming. `train_whitebox` takes any target, and
+`sweep_whitebox(alpha_grid=...)` sweeps the blend
+`alpha * y + (1 - alpha) * teacher_latent` from pure distillation to pure
+labels. At a small tree-and-depth budget, regressing onto a teacher's
+probabilities can spend capacity on teacher noise instead of outcome; whether
+that happens on your data is an empirical question. Sweep the target
+alongside capacity, not on its own — the two are easy to confuse.
+
 ### Why not just use SHAP?
 
 TreeSHAP is exact for trees and a fine analysis tool — the differences are

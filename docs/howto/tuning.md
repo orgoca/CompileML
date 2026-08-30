@@ -220,6 +220,71 @@ committee-credibility for free; if it is large, the teacher has learned a
 genuinely non-monotone pattern, and *that* is worth investigating before any
 constraint is imposed.
 
+## The floor: what should the whitebox beat?
+
+`gini_retention_pct` answers "how close did we get to the teacher?" It cannot
+answer "did we beat a logistic regression?", and those are different
+questions. A whitebox at 95% of a very strong teacher can still be losing to
+thirty logistic coefficients on the same data — retention alone will never
+say so, because it only measures distance to a ceiling.
+
+So measure the floor too:
+
+```python
+from compileml.reference import fit_reference
+
+reference = fit_reference(X_train, y_train, feature_names=FEATURES)
+rows = sweep_whitebox(X, teacher, y, reference=reference, ...)
+```
+
+Every row then carries `reference_gini`, `gini_vs_reference_pct` and
+`beats_reference` beside the teacher columns. Sweeping with a teacher and no
+reference warns, because a one-sided report is the failure mode this exists
+to prevent.
+
+`fit_reference` is a **sanity floor, not a challenger model**: shallow
+supervised binning per feature, weight-of-evidence encoding, logistic
+regression, and regularization strength chosen by cross-validation with the
+WOE tables refit inside each fold. If you already have a champion scorecard,
+its Gini is a better floor than anything fitted here — pass the number
+directly, since `reference=` accepts a float:
+
+```python
+rows = sweep_whitebox(X, teacher, y, reference=0.8515, ...)
+```
+
+The same argument goes to `validate_artifact(reference=...)` as check 10,
+advisory by default and gateable with `require_reference_floor=True`.
+
+## Choosing the target: distillation is a choice, not a given
+
+`train_whitebox` regresses onto whatever target you hand it. Distilling from
+a teacher's probabilities is the default, but at a depth-2 budget a soft
+target can spend capacity fitting the teacher's noise rather than the
+outcome — and the labels are right there.
+
+`alpha_grid` sweeps it, training each configuration on
+`alpha * y + (1 - alpha) * teacher_latent`:
+
+```python
+rows = sweep_whitebox(
+    X, teacher, y,
+    trees_grid=(20, 40, 80),
+    alpha_grid=(0.0, 0.25, 0.5, 0.75, 1.0),   # 0 = distil, 1 = labels
+    reference=reference,
+)
+```
+
+Two cautions. Keep the axis **orthogonal to capacity** — a target effect
+measured at a single starved capacity is easily a capacity effect wearing a
+disguise, so sweep trees and depth alongside it. And do not assume the
+endpoints bracket the answer: soft targets sometimes regularize, so an
+interior blend can win. That is the argument for sweeping rather than
+asserting either end.
+
+To drop the teacher entirely, pass `teacher_latent=None`; `alpha_grid` is
+forced to `(1.0,)` and the teacher columns come back `None`.
+
 ## Defaults, for the impatient
 
 `train_whitebox(n_estimators=30, max_depth=2)` and `n_bands=10` are sane

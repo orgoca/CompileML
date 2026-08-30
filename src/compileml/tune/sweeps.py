@@ -13,6 +13,12 @@ The asymmetry worth internalizing before sweeping:
   above 2** (attribution residuals appear, and no clean scorecard exists).
 
 Spend on trees; be stingy with depth.
+
+Two yardsticks, not one. ``gini_retention_pct`` measures distance to a
+teacher ceiling and is structurally incapable of reporting that a plain
+logistic regression would have beaten the whitebox. Pass ``reference=`` — a
+fitted :class:`~compileml.reference.ReferenceModel` or simply your champion
+scorecard's Gini — and every row carries the floor beside the ceiling.
 """
 
 from __future__ import annotations
@@ -30,6 +36,7 @@ from compileml.bands.efficiency import band_efficiency
 from compileml.compile.distill import train_whitebox
 from compileml.compile.extract import extract_trees
 from compileml.compile.quantize import quantize_model
+from compileml.reference.woe import reference_gini as _reference_gini
 from compileml.runtime.explain import contributions_half_micro
 
 
@@ -40,12 +47,14 @@ def sweep_whitebox(
     *,
     trees_grid=(10, 20, 40, 80, 160),
     depth_grid=(1, 2, 3),
+    alpha_grid=(0.0,),
     learning_rate: float = 0.2,
     random_state: int = 42,
     X_val=None,
     y_val=None,
     teacher_latent_val=None,
     monotone_constraints=None,
+    reference=None,
     explain_timing_rows: int = 3,
 ) -> list[dict]:
     """Grid-sweep whitebox capacity; measure what each configuration buys.
@@ -61,68 +70,116 @@ def sweep_whitebox(
     Pass ``monotone_constraints`` to sweep the constrained backend instead —
     run both and diff the retention column to measure the monotonicity
     premium before committing to it.
+
+    ``alpha_grid`` sweeps the *target*: each configuration trains on
+    ``alpha * y + (1 - alpha) * teacher_latent``, so ``0.0`` is pure
+    distillation (the default, and the historical behavior) and ``1.0``
+    trains directly on labels. Whether an interior blend wins is a question
+    about your data rather than a settled one — soft targets sometimes
+    regularize, and at a starved capacity they sometimes just fit teacher
+    noise. Keep the axis orthogonal to capacity by sweeping trees and depth
+    alongside it; a target effect measured at one capacity is easily a
+    capacity effect in disguise. Pass ``teacher_latent=None`` to drop the
+    teacher entirely, which forces ``alpha_grid=(1.0,)``.
+
+    ``reference`` accepts a fitted
+    :class:`~compileml.reference.ReferenceModel` or a bare Gini float, and
+    adds ``reference_gini`` / ``gini_vs_reference_pct`` / ``beats_reference``
+    to every row. Reporting teacher retention without it warns: a ceiling
+    alone cannot tell you the whitebox is losing to a logistic regression.
     """
     X_arr = np.asarray(X, dtype=float)
-    t_lat = np.asarray(teacher_latent, dtype=float).reshape(-1)
     y_arr = np.asarray(y, dtype=int).reshape(-1)
+    has_teacher = teacher_latent is not None
+    t_lat = np.asarray(teacher_latent, dtype=float).reshape(-1) if has_teacher else None
+    if not has_teacher:
+        alpha_grid = (1.0,)  # nothing to blend against; train on labels
 
     if X_val is not None:
         X_eval = np.asarray(X_val, dtype=float)
         y_eval = np.asarray(y_val, dtype=int).reshape(-1)
-        t_eval = np.asarray(teacher_latent_val, dtype=float).reshape(-1)
+        t_eval = (
+            np.asarray(teacher_latent_val, dtype=float).reshape(-1)
+            if teacher_latent_val is not None
+            else None
+        )
         in_sample = False
     else:
         X_eval, y_eval, t_eval = X_arr, y_arr, t_lat
         in_sample = True
 
-    teacher_gini = 2 * float(roc_auc_score(y_eval, t_eval)) - 1
+    teacher_gini = 2 * float(roc_auc_score(y_eval, t_eval)) - 1 if t_eval is not None else None
+    ref_gini = _reference_gini(reference, X_eval, y_eval) if reference is not None else None
+    if teacher_gini is not None and ref_gini is None:
+        warnings.warn(
+            "reporting gini_retention_pct without a reference: retention measures "
+            "distance to the teacher ceiling only, and cannot reveal that a plain "
+            "logistic regression outscores the whitebox. Pass reference= (a fitted "
+            "ReferenceModel, or your champion scorecard's Gini).",
+            stacklevel=2,
+        )
     baseline = np.median(X_arr, axis=0)
 
     rows = []
     for depth in depth_grid:
         for n_trees in trees_grid:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")  # depth>2 warning is the sweep's point
-                model, _ = train_whitebox(
-                    X_arr,
-                    t_lat,
-                    n_estimators=n_trees,
-                    max_depth=depth,
-                    learning_rate=learning_rate,
-                    random_state=random_state,
-                    monotone_constraints=monotone_constraints,
+            for alpha in alpha_grid:
+                if has_teacher:
+                    target = alpha * y_arr.astype(float) + (1.0 - alpha) * t_lat
+                else:
+                    target = y_arr.astype(float)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")  # depth>2 warning is the sweep's point
+                    model, _ = train_whitebox(
+                        X_arr,
+                        target,
+                        n_estimators=n_trees,
+                        max_depth=depth,
+                        learning_rate=learning_rate,
+                        random_state=random_state,
+                        monotone_constraints=monotone_constraints,
+                    )
+                latent_eval = np.clip(model.predict(X_eval), 0.0, 1.0)
+                gini = 2 * float(roc_auc_score(y_eval, latent_eval)) - 1
+                rho = float(spearmanr(t_eval, latent_eval)[0]) if t_eval is not None else None
+
+                model_int = quantize_model(extract_trees(model))
+                model_kb = len(json.dumps(model_int)) / 1024
+
+                times = []
+                base_list = [float(v) for v in baseline]
+                for i in range(min(explain_timing_rows, len(X_eval))):
+                    row = [float(v) for v in X_eval[i]]
+                    t0 = time.perf_counter()
+                    contributions_half_micro(model_int, row, base_list)
+                    times.append((time.perf_counter() - t0) * 1000)
+
+                rows.append(
+                    {
+                        "n_estimators": int(n_trees),
+                        "max_depth": int(depth),
+                        "alpha": float(alpha),
+                        "gini": round(gini, 4),
+                        "gini_retention_pct": (
+                            round(100 * gini / teacher_gini, 2)
+                            if teacher_gini is not None and teacher_gini > 0
+                            else None
+                        ),
+                        "reference_gini": (round(ref_gini, 4) if ref_gini is not None else None),
+                        "gini_vs_reference_pct": (
+                            round(100 * gini / ref_gini, 2)
+                            if ref_gini is not None and ref_gini > 0
+                            else None
+                        ),
+                        "beats_reference": ((gini >= ref_gini) if ref_gini is not None else None),
+                        "spearman_vs_teacher": (round(rho, 4) if rho is not None else None),
+                        "exact_attribution": depth <= 2,
+                        "model_kb": round(model_kb, 1),
+                        "explain_ms_per_row": round(float(np.median(times)), 2),
+                        "constrained": monotone_constraints is not None,
+                        "in_sample": in_sample,
+                    }
                 )
-            latent_eval = np.clip(model.predict(X_eval), 0.0, 1.0)
-            gini = 2 * float(roc_auc_score(y_eval, latent_eval)) - 1
-            rho = float(spearmanr(t_eval, latent_eval)[0])
-
-            model_int = quantize_model(extract_trees(model))
-            model_kb = len(json.dumps(model_int)) / 1024
-
-            times = []
-            base_list = [float(v) for v in baseline]
-            for i in range(min(explain_timing_rows, len(X_eval))):
-                row = [float(v) for v in X_eval[i]]
-                t0 = time.perf_counter()
-                contributions_half_micro(model_int, row, base_list)
-                times.append((time.perf_counter() - t0) * 1000)
-
-            rows.append(
-                {
-                    "n_estimators": int(n_trees),
-                    "max_depth": int(depth),
-                    "gini": round(gini, 4),
-                    "gini_retention_pct": (
-                        round(100 * gini / teacher_gini, 2) if teacher_gini > 0 else None
-                    ),
-                    "spearman_vs_teacher": round(rho, 4),
-                    "exact_attribution": depth <= 2,
-                    "model_kb": round(model_kb, 1),
-                    "explain_ms_per_row": round(float(np.median(times)), 2),
-                    "constrained": monotone_constraints is not None,
-                    "in_sample": in_sample,
-                }
-            )
     return rows
 
 
