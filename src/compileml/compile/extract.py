@@ -93,10 +93,41 @@ def _is_lightgbm(model) -> bool:
 
 
 def _extract_sklearn(model) -> ExtractedModel:
-    if hasattr(model, "init_") and hasattr(model.init_, "constant_"):
-        base = float(np.ravel(model.init_.constant_)[0])
-    else:
+    """Extract a classic sklearn GradientBoosting ensemble.
+
+    The initial estimator decides whether the trees alone are the whole
+    model. Four cases, and only two of them are compilable:
+
+    - default init (``DummyRegressor``) — a constant, folded into ``base``;
+    - ``init="zero"`` — sklearn stores the literal string, and 0.0 is right;
+    - a classifier — emits log-odds margins, out of contract (§4);
+    - any other fitted estimator — the trees are only the *residual*, and
+      schema v2 has nowhere to record the base model.
+
+    The last two used to fall through to ``base = 0.0``, producing an
+    artifact whose every score was short by a constant. Constant offsets
+    are invisible to rank metrics, so nothing downstream caught it while
+    calibrated PD and the fixed-point band ladder were both wrong.
+    """
+    if hasattr(model, "classes_") or hasattr(model, "predict_proba"):
+        raise ValueError(
+            "gradient boosting classifiers emit log-odds margins, which the "
+            "artifact contract does not accept — the latent must be "
+            "probability-like in [0, 1] (ARTIFACT_SPEC.md §4). Distill it "
+            "first: train_whitebox(X, model.predict_proba(X)[:, 1])."
+        )
+    init = getattr(model, "init_", None)
+    if init is None or isinstance(init, str):  # init="zero" is stored as a string
         base = 0.0
+    elif hasattr(init, "constant_"):
+        base = float(np.ravel(init.constant_)[0])
+    else:
+        raise ValueError(
+            f"the model was fitted with init={type(init).__name__}, whose prediction "
+            "is not a constant. The compiled trees carry only the residual and schema "
+            "v2 has no field for a non-constant base, so the artifact would score "
+            "incorrectly. Refit with the default init, or with init='zero'."
+        )
     lr = float(getattr(model, "learning_rate", 1.0))
 
     trees = []
@@ -344,7 +375,9 @@ def extract_trees(model) -> ExtractedModel:
         validate_extraction(extracted, model)
         return extracted
     if _is_sklearn_gbm(model):
-        return _extract_sklearn(model)
+        extracted = _extract_sklearn(model)
+        validate_extraction(extracted, model)
+        return extracted
     if _is_xgboost(model):
         extracted = _extract_xgboost(model)
         validate_extraction(extracted, model)
@@ -380,11 +413,11 @@ def validate_extraction(
         booster = model.booster_ if hasattr(model, "booster_") else model
         X = rng.standard_normal((n_val, extracted.n_features)).astype(np.float64)
         ref = np.asarray(booster.predict(X, raw_score=True), dtype=float)
-    elif extracted.family == "sklearn_hist":
+    elif extracted.family in ("sklearn", "sklearn_hist"):
         X = rng.standard_normal((n_val, extracted.n_features)).astype(np.float64)
         ref = np.asarray(model.predict(X), dtype=float)
     else:
-        return  # sklearn covered by unit tests against model.predict
+        return  # unknown family: nothing to compare against
 
     pred = np.array([score_float(extracted, [float(v) for v in X[i]]) for i in range(n_val)])
     max_diff = float(np.max(np.abs(ref - pred)))

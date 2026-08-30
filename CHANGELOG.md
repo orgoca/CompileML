@@ -7,6 +7,27 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Fixed
+- **Gradient boosting classifiers compiled to silently wrong artifacts.**
+  `extract_trees` read the initial estimator's constant only when it exposed
+  `constant_`. A `GradientBoostingClassifier`'s init is a `DummyClassifier`,
+  which does not, so `base` fell through to `0.0` and every compiled score was
+  short by the log-odds prior. Because the error was a constant offset, Gini,
+  Spearman and quantile band edges all agreed with the source model while
+  calibrated PD and the fixed-point band ladder were wrong. Classifiers now
+  raise with a pointer to `train_whitebox`, as `build_artifact` always
+  documented but nothing enforced. A non-constant estimator `init` — where the
+  compiled trees are only the residual and schema v2 has no field for the base
+  model — raises for the same reason; `init="zero"` and the default constant
+  init are unaffected.
+
+  **Artifacts compiled from a classifier before this release carry a wrong
+  base and should be rebuilt.** Ranking is unaffected, so a rank-only check
+  will not reveal it; compare `pd_ppm` against the source model instead.
+- The `sklearn` family no longer skips `validate_extraction`. It was exempted
+  on the grounds of unit-test coverage, which existed for the regressor and
+  not the classifier — the parity gate would otherwise have caught the above.
+
 ## [0.2.0] - 2026-08-27
 
 Monotone feature constraints — the first of the three adoption-gap items

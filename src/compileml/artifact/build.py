@@ -67,7 +67,8 @@ def build_artifact(
         model: Fitted sklearn GBM, XGBoost, or LightGBM model whose raw
             output is a probability-like latent in [0, 1] (distilled
             whiteboxes always satisfy this; classifiers emitting log-odds
-            margins must be distilled first via ``train_whitebox``).
+            margins must be distilled first via ``train_whitebox``, and are
+            now refused at extraction rather than compiled to a wrong base).
         feature_names: Feature order the model was trained on.
         baseline: Reference row (typically imputer medians): imputation
             values under missing_policy="baseline" and the attribution
