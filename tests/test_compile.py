@@ -13,6 +13,7 @@ from compileml.compile import (
     quantize_model,
     score_float,
     train_whitebox,
+    validate_extraction,
 )
 from compileml.runtime import decide, load_artifact, score_micro, verify_artifact
 from compileml.runtime.calibrate import calibrate_ppm
@@ -64,6 +65,63 @@ def test_extract_matches_sklearn_predict(data, whitebox):
         assert score_float(extracted, [float(v) for v in row]) == pytest.approx(
             float(whitebox.predict(row.reshape(1, -1))[0]), abs=1e-9
         )
+
+
+def test_constant_init_folded_into_base(data, whitebox):
+    """Default init is a DummyRegressor constant; it belongs in base."""
+    extracted = extract_trees(whitebox)
+    assert extracted.base == pytest.approx(float(whitebox.init_.constant_.ravel()[0]))
+
+
+def test_init_zero_extracts_zero_base(data):
+    """sklearn stores init='zero' as the literal string — base 0.0 is correct."""
+    from sklearn.ensemble import GradientBoostingRegressor
+
+    X, teacher, _ = data
+    model = GradientBoostingRegressor(n_estimators=5, max_depth=2, init="zero")
+    model.fit(X, teacher)
+    extracted = extract_trees(model)  # parity-gated inside
+    assert extracted.base == 0.0
+    for row in X[:20]:
+        assert score_float(extracted, [float(v) for v in row]) == pytest.approx(
+            float(model.predict(row.reshape(1, -1))[0]), abs=1e-9
+        )
+
+
+def test_classifier_extraction_raises(data):
+    """A classifier's log-odds prior lives nowhere in the artifact.
+
+    Before this was caught, ``base`` silently became 0.0 and every compiled
+    margin was short by the prior — a constant offset, so Gini, Spearman and
+    quantile edges all agreed while calibrated PD and the band ladder did not.
+    """
+    from sklearn.ensemble import GradientBoostingClassifier
+
+    X, _, y = data
+    model = GradientBoostingClassifier(n_estimators=5, max_depth=2)
+    model.fit(X, y)
+    with pytest.raises(ValueError, match="log-odds"):
+        extract_trees(model)
+
+
+def test_estimator_init_raises(data):
+    """A non-constant init makes the trees a residual with no base to add."""
+    from sklearn.ensemble import GradientBoostingRegressor
+    from sklearn.linear_model import LinearRegression
+
+    X, teacher, _ = data
+    model = GradientBoostingRegressor(n_estimators=5, max_depth=2, init=LinearRegression())
+    model.fit(X, teacher)
+    with pytest.raises(ValueError, match="not a constant"):
+        extract_trees(model)
+
+
+def test_sklearn_extraction_is_parity_gated(data, whitebox):
+    """The sklearn family is no longer exempt from validate_extraction."""
+    extracted = extract_trees(whitebox)
+    extracted.base += 0.01  # the exact shape the classifier bug took
+    with pytest.raises(ValueError, match="extraction parity failed for sklearn"):
+        validate_extraction(extracted, whitebox)
 
 
 def test_quantization_error_within_bound(data, whitebox):
