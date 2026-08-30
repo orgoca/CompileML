@@ -7,6 +7,17 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- `compileml.datasets`: the data the documentation compiles against.
+  `load_credit_default` fetches the UCI credit-card default panel once,
+  verifies it against a recorded SHA-256 and caches it under
+  `$COMPILEML_DATA_HOME` or `~/.compileml/data`; `make_credit_data`
+  generates a synthetic set with a known interaction and needs no network.
+  Demographic columns (`SEX`, `EDUCATION`, `MARRIAGE`, `AGE`) are excluded
+  unless asked for — a credit library should not ship examples that model
+  on them by default. The panel is fetched rather than bundled so the wheel
+  stays small enough to vendor.
+
 ## [0.3.0] - 2026-08-30
 
 Two yardsticks instead of one. Retention against a teacher measures the

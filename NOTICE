@@ -3,3 +3,22 @@ Copyright 2026 Carlos Ortiz
 
 This product includes software developed by Carlos Ortiz
 (https://github.com/orgoca).
+
+--------------------------------------------------------------------------
+Datasets
+
+compileml.datasets.load_credit_default downloads and caches the "Default of
+Credit Card Clients" dataset, redistributed here as a gzipped CSV.
+
+  Yeh, I. C., & Lien, C. H. (2009). The comparisons of data mining
+  techniques for the predictive accuracy of probability of default of
+  credit card clients. Expert Systems with Applications, 36(2), 2473-2480.
+
+  UCI Machine Learning Repository.
+  https://archive.ics.uci.edu/dataset/350/
+  Licensed under Creative Commons Attribution 4.0 International
+  (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
+The redistributed copy is unmodified in content. Column "PAY_0" is renamed
+"PAY_1" for consistency with PAY_2..PAY_6, the "ID" column is dropped, and
+the target is renamed "DEFAULT"; no values are altered.
