@@ -87,3 +87,9 @@
 ::: compileml.viz.plots.band_ladder
 
 ::: compileml.viz.svg.waterfall_svg
+
+## Datasets
+
+::: compileml.datasets.load_credit_default
+
+::: compileml.datasets.make_credit_data
