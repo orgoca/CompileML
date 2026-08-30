@@ -253,7 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", help="output file (default: stdout)")
     p.set_defaults(func=cmd_scorecard)
 
-    p = sub.add_parser("validate", help="run the 9-check validation framework")
+    p = sub.add_parser("validate", help="run the 10-check validation framework")
     p.add_argument("artifact")
     p.add_argument("--csv", help="validation CSV (features + outcome)")
     p.add_argument("--y-col", help="outcome column name in --csv")

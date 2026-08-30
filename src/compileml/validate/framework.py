@@ -1,4 +1,4 @@
-"""Pre-deployment validation — nine checks run against the artifact itself.
+"""Pre-deployment validation — ten checks run against the artifact itself.
 
 The defining property of this framework: **every check exercises the same
 JSON document and the same runtime that production runs.** There is no
@@ -25,6 +25,9 @@ Checks (each reports pass/skipped plus evidence):
   9. monotone_constraints      declared directions re-verified against the
                                shipped integer trees (skipped when the
                                artifact declares none)
+ 10. reference_floor           the artifact out-scores a reference model on
+                               the same data — the floor that teacher
+                               retention alone can never supply
 """
 
 from __future__ import annotations
@@ -70,9 +73,11 @@ def validate_artifact(
     min_fidelity_spearman: float = 0.999,
     max_within_band_auc: float | None = None,
     require_full_reason_coverage: bool = False,
+    reference=None,
+    require_reference_floor: bool = False,
     seed: int = 42,
 ) -> dict:
-    """Run the nine-check framework. Checks lacking inputs skip, not fail.
+    """Run the ten-check framework. Checks lacking inputs skip, not fail.
 
     Args:
         artifact_or_path: Artifact dict or path to its JSON (paths get the
@@ -83,6 +88,15 @@ def validate_artifact(
         latent_train: Training latents; enables the churn baseline (6).
         require_full_reason_coverage: Make check 8 fail below 100% coverage
             (recommended for consumer-facing deployments).
+        reference: A fitted ``compileml.reference.ReferenceModel`` or a bare
+            Gini float, enabling check 10. Retention against a teacher is
+            one-sided and cannot reveal that a plain logistic regression
+            outscores the artifact; this is the other side of it. A champion
+            scorecard's Gini is a better floor than a fitted one — pass the
+            number.
+        require_reference_floor: Make check 10 *fail* when the artifact does
+            not clear the reference, rather than recording it as evidence
+            (the ``max_within_band_auc`` precedent).
 
     Returns:
         {"all_pass": bool, "checks": {name: {"pass", "skipped", ...evidence}}}
@@ -311,5 +325,30 @@ def validate_artifact(
         }
     else:
         checks["9_monotone_constraints"] = {"pass": True, "skipped": True}
+
+    # ------------------------------------------------ 10 reference floor
+    if reference is not None and X is not None and y is not None:
+        from sklearn.metrics import roc_auc_score
+
+        from compileml.reference.woe import reference_gini as _reference_gini
+
+        if latents is None:
+            latents = _latents_int(artifact, X)
+        artifact_gini = 2 * float(roc_auc_score(y, latents.astype(float))) - 1
+        ref_gini = _reference_gini(reference, X, y)
+        clears = artifact_gini >= ref_gini
+        checks["10_reference_floor"] = {
+            "pass": bool(clears or not require_reference_floor),
+            "skipped": False,
+            "artifact_gini": round(artifact_gini, 4),
+            "reference_gini": round(ref_gini, 4),
+            "gini_vs_reference_pct": (
+                round(100 * artifact_gini / ref_gini, 2) if ref_gini > 0 else None
+            ),
+            "clears_floor": bool(clears),
+            "required": bool(require_reference_floor),
+        }
+    else:
+        checks["10_reference_floor"] = {"pass": True, "skipped": True}
 
     return {"all_pass": all(c["pass"] for c in checks.values()), "checks": checks}
