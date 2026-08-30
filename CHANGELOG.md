@@ -7,6 +7,13 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-30
+
+A correctness fix. Compiling a gradient boosting *classifier* produced an
+artifact whose every score was short by the log-odds prior — invisible to
+ranking, wrong in calibrated PD and band assignment. Such models are now
+refused at extraction rather than compiled with a dropped base.
+
 ### Fixed
 - **Gradient boosting classifiers compiled to silently wrong artifacts.**
   `extract_trees` read the initial estimator's constant only when it exposed
