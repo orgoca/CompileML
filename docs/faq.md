@@ -1,6 +1,6 @@
 # FAQ
 
-### How many trees should the whitebox have? What depth?
+## How many trees should the whitebox have? What depth?
 
 Measured answers beat rules of thumb: run
 [`sweep_whitebox`](howto/tuning.md) on a holdout and pick the elbow of the
@@ -8,7 +8,7 @@ retention curve. The short version: trees are a cheap linear knob that never
 costs you a guarantee; depth is the knob that takes exact attribution away
 above 2. **Spend on trees, be stingy with depth.**
 
-### Why is depth 2 the default?
+## Why is depth 2 the default?
 
 It is the boundary of two guarantees at once. At depth ≤ 2 the pairwise
 attribution is *complete* — the residual is zero as an arithmetic identity —
@@ -16,7 +16,7 @@ and the artifact collapses into an [exact scorecard](howto/tuning.md#producing-a
 At depth 3 both break, for the same mathematical reason: three-way structure
 appears. The tooling warns, records, draws, and refuses accordingly.
 
-### If I keep adding capacity, don't I just get the teacher back and lose the point of compiling?
+## If I keep adding capacity, don't I just get the teacher back and lose the point of compiling?
 
 No. Fidelity converges toward the teacher; the compilation properties —
 integer determinism, one hashed artifact, SQL/COBOL export, sub-millisecond
@@ -24,14 +24,14 @@ scoring — hold at any size. Only exact attribution is at risk, and only from
 depth. What grows with trees is artifact bytes and explanation milliseconds,
 linearly, and [`sweep_whitebox`](howto/tuning.md) prices both.
 
-### How many bands should I use?
+## How many bands should I use?
 
 Either let the data answer — [`semantic_bands` / `governance_bands`](concepts/bands.md)
 return the band count they can statistically *defend*, and honestly return
 one band on noise — or sweep fixed K with `sweep_bands` and read the
 retention-vs-K table.
 
-### How do I know my banding isn't leaving money on the table?
+## How do I know my banding isn't leaving money on the table?
 
 [`band_efficiency`](howto/tuning.md#money-on-the-table-within-band-auc). The
 `gini_gap` is the discrimination your ladder discards; per-band within-band
@@ -39,14 +39,14 @@ AUCs (with bootstrap CIs) tell you *where* — a band whose CI sits above 0.55
 can still rank risk internally and is a refinement candidate. Validation
 check 4 carries the same numbers on every run.
 
-### Can I get a classic points scorecard out of this?
+## Can I get a classic points scorecard out of this?
 
 Yes — exactly, not approximately, at depth ≤ 2: `build_scorecard(artifact)`
 or `compileml scorecard decision.json --format csv`. The printed tables
 re-sum to every production decision bit-for-bit; a validator can reproduce
 scores in a spreadsheet.
 
-### Can I force a direction — "more delinquency must never score better"?
+## Can I force a direction — "more delinquency must never score better"?
 
 Yes. Pass `monotone_constraints` (per-feature −1/0/+1) to `train_whitebox`
 and the whitebox is trained with scikit-learn's histogram GBM, which enforces
@@ -60,7 +60,7 @@ wherever the teacher genuinely wiggles; [measure the
 premium](howto/tuning.md#the-monotonicity-premium-measured) instead of
 guessing it.
 
-### My whitebox keeps 95% of the teacher. Is that good?
+## My whitebox keeps 95% of the teacher. Is that good?
 
 It is half an answer. Retention measures distance to a ceiling and cannot
 tell you the artifact is being beaten by a logistic regression on the same
@@ -71,7 +71,7 @@ as a plain float) and every sweep row carries the floor beside the ceiling.
 Validation check 10 applies the same comparison to a built artifact. See
 [the tuning guide](howto/tuning.md#the-floor-what-should-the-whitebox-beat).
 
-### Should I distil from a teacher, or train on labels directly?
+## Should I distil from a teacher, or train on labels directly?
 
 Measure it rather than assuming. `train_whitebox` takes any target, and
 `sweep_whitebox(alpha_grid=...)` sweeps the blend
@@ -81,7 +81,7 @@ probabilities can spend capacity on teacher noise instead of outcome; whether
 that happens on your data is an empirical question. Sweep the target
 alongside capacity, not on its own — the two are easy to confuse.
 
-### Why not just use SHAP?
+## Why not just use SHAP?
 
 TreeSHAP is exact for trees and a fine analysis tool — the differences are
 about *deployment*, not correctness. CompileML's explanation is computed on
@@ -91,7 +91,7 @@ travels into the SQL and COBOL exports. The explanation is part of the
 decision record, under the artifact's hash, rather than a separate analysis
 run that must be trusted to match.
 
-### Can I compile my XGBoost classifier directly?
+## Can I compile my XGBoost classifier directly?
 
 Directly compiled models must emit a latent in [0, 1] — a classifier's raw
 margin lives in log-odds space and will be clamped into nonsense. Distill it:
@@ -99,13 +99,13 @@ margin lives in log-odds space and will be clamped into nonsense. Distill it:
 probability-like targets compile directly, and the build warns when sample
 latents fall outside range.
 
-### What about neural networks?
+## What about neural networks?
 
 Same route: any model that produces a probability-like latent can teach a
 whitebox. The artifact never contains the network — it contains the distilled
 trees, with the retention measured and recorded.
 
-### What happens when I retrain or recalibrate?
+## What happens when I retrain or recalibrate?
 
 Two mechanically distinct cases, distinguishable by hash. **Recalibration**
 (`recalibrate_artifact`) refits the PD table on fresh outcomes while the
@@ -114,20 +114,20 @@ predecessor's hash recorded as a provenance chain. **Retraining** produces a
 genuinely new artifact and a fresh governance cycle. See
 [zero-churn recalibration](howto/recalibrate.md).
 
-### How are missing values handled?
+## How are missing values handled?
 
 By declared policy inside the artifact: `"baseline"` re-applies the
 training-time imputation at decision time; `"reject"` refuses the row.
 NaN never routes silently through a tree comparison, in any runtime.
 
-### Is the artifact hash a signature?
+## Is the artifact hash a signature?
 
 No — it is an integrity check. Loaders verify it by default and refuse a
 tampered or corrupted document, but it does not prove *who* produced the
 artifact. Provenance of authorship is your repository's and your process's
 job.
 
-### My semantic_bands returned one band. Is that a bug?
+## My semantic_bands returned one band. Is that a bug?
 
 It is the honest answer: under your `eps_auc` strictness, the data cannot
 statistically support discrete classes — either outcomes are too noisy or
@@ -136,7 +136,7 @@ deliberately, or accept that band boundaries would be arbitrary. A banding
 tool that always returns the requested K is a random number generator with
 labels.
 
-### Why is the full explanation slower than scoring?
+## Why is the full explanation slower than scoring?
 
 Exact pairwise attribution costs `1 + p + p(p−1)/2` ensemble traversals —
 single-digit milliseconds at typical feature counts, which is real-time for
@@ -144,7 +144,7 @@ credit decisioning ([explain everything](concepts/attribution.md#cost-honestly)
 is the recommended default). The cost matters for full-book *batch*
 re-explanation, which the leaf-time roadmap item addresses.
 
-### Same artifact, same input — could two machines ever disagree?
+## Same artifact, same input — could two machines ever disagree?
 
 Not within the contract: scoring is integer addition, banding integer
 comparison, calibration integer lookup, and the single float operation
