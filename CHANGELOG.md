@@ -7,6 +7,11 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-30
+
+The data the documentation compiles against, so a worked example can be run
+rather than read.
+
 ### Added
 - `compileml.datasets`: the data the documentation compiles against.
   `load_credit_default` fetches the UCI credit-card default panel once,
