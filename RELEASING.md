@@ -26,7 +26,11 @@ tokens stored anywhere.
 
 1. Bump `__version__` in `src/compileml/__init__.py` — the single source of
    truth; pyproject reads it at build time — and move the `[Unreleased]`
-   CHANGELOG section under the new version with the date.
+   CHANGELOG section under the new version with the date. Update `version:`
+   and `date-released:` in `CITATION.cff` to match; Zenodo reads that file
+   when it archives the release, so a stale version there is published.
+   (`__version__` stays the single source of truth for the *package* — this
+   is citation metadata, which Zenodo and GitHub read separately.)
 2. Commit: `release: vX.Y.Z`, then tag and push:
    ```bash
    git tag vX.Y.Z

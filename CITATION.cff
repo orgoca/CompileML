@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use CompileML in your research, please cite it as below."
+title: CompileML
+abstract: >-
+  CompileML compiles tree-ensemble models into deterministic, auditable,
+  integer-exact decision artifacts. A single hashed JSON document carries the
+  integer-quantized score, isotonic calibration, fixed-point risk bands,
+  reason codes, and exact per-feature attributions; a standard-library-only
+  runtime scores it, and SQL and COBOL exporters reproduce the same integers
+  row for row. At whitebox depth two or less, attribution is exact — every
+  explanation sums back to the production score with no residual — and the
+  artifact collapses to a classical points scorecard without approximation.
+type: software
+authors:
+  - given-names: Carlos
+    family-names: Ortiz
+    email: orgoca@gmail.com
+    # orcid: "https://orcid.org/0000-0000-0000-0000"   # add once registered
+repository-code: "https://github.com/orgoca/CompileML"
+url: "https://github.com/orgoca/CompileML"
+license: Apache-2.0
+version: 0.4.0
+date-released: "2026-08-31"
+keywords:
+  - credit risk
+  - credit scoring
+  - scorecard
+  - model deployment
+  - explainability
+  - determinism
+  - adverse action
+  - model governance
+# doi: 10.5281/zenodo.XXXXXXX   # concept DOI, added after the first Zenodo archive
