@@ -30,4 +30,6 @@ keywords:
   - determinism
   - adverse action
   - model governance
-# doi: 10.5281/zenodo.XXXXXXX   # concept DOI, added after the first Zenodo archive
+# The concept DOI: it resolves to the newest release, so it does not go
+# stale. Each release also gets its own version DOI on the Zenodo record.
+doi: 10.5281/zenodo.22242231

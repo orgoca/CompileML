@@ -4,6 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/compileml)](https://pypi.org/project/compileml/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/compileml/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22242231.svg)](https://doi.org/10.5281/zenodo.22242231)
 
 **Keep the predictive power of a tree ensemble. Deploy it as transparent decision logic with no model runtime.**
 
@@ -312,6 +313,17 @@ It checks:
 These checks run against the compiled artifact through the same runtime used for production decisions. There is no separate notebook implementation allowed to become "almost the same" over time.
 
 The command exits with `0` or `1`, so it can gate deployment in CI.
+
+## Citing
+
+Every release is archived on Zenodo. Cite the concept DOI — it always
+resolves to the newest version:
+
+> Ortiz, C. *CompileML*. https://doi.org/10.5281/zenodo.22242231
+
+To pin a specific version, use that release's own DOI from its
+[Zenodo record](https://doi.org/10.5281/zenodo.22242231). GitHub's **Cite this repository**
+button reads [CITATION.cff](CITATION.cff) and will format it for you.
 
 ## Install
 
