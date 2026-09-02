@@ -19,7 +19,7 @@ authors:
 repository-code: "https://github.com/orgoca/CompileML"
 url: "https://github.com/orgoca/CompileML"
 license: Apache-2.0
-version: 0.4.1
+version: 0.4.3
 date-released: "2026-09-02"
 keywords:
   - credit risk

@@ -7,6 +7,25 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-02
+
+The first release since 0.4.0 whose tag, package version and contents agree.
+
+Two releases were tagged one commit early, before the version bump had
+merged. `v0.4.1` pointed at a tree still declaring 0.4.0, so it built a
+duplicate and PyPI refused it. `v0.4.2` pointed at the 0.4.1 bump, so it
+built and successfully published **compileml 0.4.1** — which is why 0.4.1 is
+on PyPI and 0.4.2 never was. Both tags and their Zenodo archives are left
+as they are: moving a published tag does not re-archive it, and rewriting
+one others may have fetched is worse than a gap in the sequence.
+
+### Fixed
+- The release workflow compares the built wheel's version against the tag
+  and fails in seconds if they disagree, instead of surfacing the mismatch
+  at the upload step of an already-public release. `RELEASING.md` says to
+  tag the *merge* commit when the bump goes through a pull request, and how
+  to check it before publishing.
+
 ## [0.4.1] - 2026-09-02
 
 Documentation and metadata only — no change to `src/`, no API or behaviour
