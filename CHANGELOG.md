@@ -7,6 +7,31 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-02
+
+Documentation and metadata only — no change to `src/`, no API or behaviour
+change. It exists so the project has a citable, archived record: Zenodo
+archives releases published after its GitHub integration is enabled, and
+does not backfill, so the first release after switching it on is the first
+one that gets a DOI.
+
+### Added
+- `CITATION.cff`. GitHub renders a "Cite this repository" button from it and
+  Zenodo reads it when archiving, so the archived record carries the author,
+  licence, abstract and keywords rather than what can be inferred from a
+  tarball. The Zenodo concept DOI is not in this release: it is minted *by*
+  the first archive, so the first archived version cannot contain it.
+- `RELEASING.md` step keeping `CITATION.cff` in step with the version.
+  `__version__` is the single source of truth for the package and everything
+  builds from it, so an error there fails loudly; citation metadata is read
+  only by GitHub and Zenodo, so a stale version there is silently published
+  into a permanent archive.
+
+### Fixed
+- FAQ entries were `h3` under an `h1` with no `h2` between them, so the
+  page's table of contents came out flat and the entries were invisible to
+  it. They are now `h2`.
+
 ## [0.4.0] - 2026-08-30
 
 The data the documentation compiles against, so a worked example can be run
