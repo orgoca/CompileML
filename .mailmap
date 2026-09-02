@@ -1,0 +1,17 @@
+# Canonical author identity for git's history output.
+#
+# Commits made locally carry `Carlos Ortiz <orgoca@gmail.com>`; pull requests
+# merged through the GitHub web interface record the account's noreply
+# address instead. Both are the same person, and without this file
+# `git shortlog`, `git log` and `git blame` present a single-author project
+# as having two contributors — the wrong impression for anyone checking
+# authorship from a clone.
+#
+# The committer on web merges stays `GitHub <noreply@github.com>`, because
+# that is what actually created those merge commits. Only the author is
+# canonicalised here, and no commit is rewritten; this changes what git
+# displays, not what it stores. GitHub's own contributor graph does not read
+# this file.
+
+Carlos Ortiz <orgoca@gmail.com> <35277730+orgoca@users.noreply.github.com>
+Carlos Ortiz <orgoca@gmail.com> orgoca <35277730+orgoca@users.noreply.github.com>
