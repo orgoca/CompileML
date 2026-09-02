@@ -7,6 +7,20 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-02
+
+Same contents as 0.4.1, which never reached PyPI. The `v0.4.1` tag was
+created one commit early — on the citation-metadata merge rather than the
+version-bump merge — so the release built `0.4.0` again and the upload was
+correctly rejected as a duplicate. 0.4.1 exists as a GitHub release and a
+Zenodo archive; it was never a package.
+
+### Fixed
+- The release workflow now checks that the built version matches the tag
+  before publishing, so a tag pointing at the wrong commit fails in seconds
+  with a clear message instead of at the upload step. `RELEASING.md` says
+  explicitly to tag the *merge* commit and verify before publishing.
+
 ## [0.4.1] - 2026-09-02
 
 Documentation and metadata only — no change to `src/`, no API or behaviour

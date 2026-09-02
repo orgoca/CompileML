@@ -24,6 +24,19 @@ jobs:
       - run: pip install build twine
       - run: python -m build
       - run: twine check dist/*
+      # A tag that points at the wrong commit builds the wrong version and is
+      # only caught at upload, by which point the release is already published.
+      # Fail here instead, where it costs seconds and nothing is public yet.
+      - name: Built version matches the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          built="$(ls dist/*.whl | sed -E 's/.*compileml-([^-]+)-py3.*/\1/')"
+          echo "tag=$tag built=$built"
+          if [ "$tag" != "$built" ]; then
+            echo "::error::tag v$tag builds version $built - the tag probably points at a commit before the version bump"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: dist

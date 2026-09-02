@@ -36,6 +36,13 @@ tokens stored anywhere.
    git tag vX.Y.Z
    git push && git push --tags
    ```
+   If the bump went through a pull request, tag the **merge commit** — not
+   whatever `main` pointed at when the PR was opened. Verify before
+   publishing, because the mismatch is otherwise invisible until the upload
+   fails:
+   ```bash
+   git show vX.Y.Z:src/compileml/__init__.py | grep __version__
+   ```
 3. Create a GitHub Release from the tag (paste the CHANGELOG section).
    Publishing to PyPI triggers automatically from the release event.
 4. Post-release: bump `__version__` in `src/compileml/__init__.py` to the
