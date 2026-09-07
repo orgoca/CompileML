@@ -189,3 +189,7 @@ def test_cobol_run_parity_under_gnucobol(fitted, tmp_path):
         ref = decide(artifact, row, explain=False)
         assert int(latent_txt.replace("+", "")) == ref["latent_int"]
         assert band_txt.strip() == ref["band"]
+def test_sql_1_band_export():
+    from compileml.export.sql import _band_case
+
+    assert _band_case([0, 100], ["G01"]) == "'G01'"
