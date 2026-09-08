@@ -65,17 +65,32 @@ regenerated figures.
 
 ## Before you open a pull request
 
-Run this. CI gates on all of it, and formatting is the most common reason a
-first pull request goes red on work that is otherwise correct:
+One command runs everything CI gates on, in the order CI runs it:
 
 ```bash
-black src tests            # reformats; CI runs black --check and fails on a diff
-ruff check --fix src tests # fixes trailing newlines, import order, and friends
-pytest
+python scripts/check.py          # ruff, black, mypy, pytest, docs build
+python scripts/check.py --fix    # format and autofix first, then check
+python scripts/check.py --fast   # skip the slow docs build
 ```
 
-`black` and `ruff` rewrite the files for you — you are not expected to match
-the style by hand. Line length is 100.
+If that passes, the pull request goes green. It exists because the gate is
+five commands over three directories — `ruff check src tests benchmarks`,
+`black --check src tests benchmarks`, `mypy src/compileml`, `pytest`,
+`mkdocs build --strict` — and remembering four of five is the normal
+outcome. Run the script instead.
+
+`--fix` rewrites the files for you; you are not expected to match the
+formatting by hand. Line length is 100.
+
+### Or never think about it again
+
+```bash
+pip install pre-commit && pre-commit install
+```
+
+`black` and `ruff` then run on every commit and fix the files before they
+are committed, so formatting cannot be the reason a pull request goes red.
+Optional, and the most useful five seconds you will spend on this repo.
 
 ## Style
 
