@@ -63,11 +63,31 @@ galleries whose APIs are already covered by unit tests. If you change
 `compileml.viz`, re-run `examples/04_visualization.ipynb` and commit the
 regenerated figures.
 
+## Before you open a pull request
+
+Run this. CI gates on all of it, and formatting is the most common reason a
+first pull request goes red on work that is otherwise correct:
+
+```bash
+black src tests            # reformats; CI runs black --check and fails on a diff
+ruff check --fix src tests # fixes trailing newlines, import order, and friends
+pytest
+```
+
+`black` and `ruff` rewrite the files for you — you are not expected to match
+the style by hand. Line length is 100.
+
 ## Style
 
-- `ruff check` and `black --check` (line length 100) must pass.
 - Match the surrounding code's docstring style (Google-ish, concise).
 - Public API changes update `docs/reference/api.md` and the CHANGELOG.
+- **A test should fail if the claim it makes stops being true.** For a bug
+  fix, that usually means reproducing the failure the way a user met it
+  rather than unit-testing the function you changed. A SQL generation bug
+  wants a test that *executes* the SQL; an attribution bug wants one that
+  checks the reconciliation identity. The existing tests are the reference —
+  `tests/test_export.py` executes generated SQL against SQLite and compiles
+  the generated COBOL where `cobc` is available.
 
 ## Reporting issues
 
