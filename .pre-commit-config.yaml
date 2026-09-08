@@ -1,0 +1,25 @@
+# Formatting cannot be the reason a pull request goes red if it never gets
+# committed unformatted. Optional, but it removes a whole class of round trip:
+#
+#     pip install pre-commit && pre-commit install
+#
+# Versions and settings mirror .github/workflows/ci.yml and pyproject.toml.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.5
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^(src|tests|benchmarks)/
+  - repo: https://github.com/psf/black
+    rev: 25.9.0
+    hooks:
+      - id: black
+        files: ^(src|tests|benchmarks)/
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
