@@ -189,3 +189,20 @@ def test_cobol_run_parity_under_gnucobol(fitted, tmp_path):
         ref = decide(artifact, row, explain=False)
         assert int(latent_txt.replace("+", "")) == ref["latent_int"]
         assert band_txt.strip() == ref["band"]
+
+
+def test_sql_1_band_export(fitted):
+    import copy
+
+    _, artifact = fitted
+    art = copy.deepcopy(artifact)
+    art["bands"]["edges_int"] = [0, 1_000_000]
+    art["bands"]["labels"] = ["G01"]
+
+    sql = export_sql(art, table="features", dialect="sqlite")
+
+    con = sqlite3.connect(":memory:")
+    con.execute(f"CREATE TABLE features ({', '.join(f'{n} REAL' for n in FEATURES)})")
+
+    con.execute(sql)
+    con.close()

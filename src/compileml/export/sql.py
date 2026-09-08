@@ -48,6 +48,8 @@ def _div_rha_sql(num: str, den: int) -> str:
 
 
 def _band_case(edges_int: list[int], labels: list[str]) -> str:
+    if len(labels) == 1:
+        return f"'{labels[0]}'"
     parts = ["CASE"]
     for cutoff, label in zip(edges_int[1:-1], labels[:-1]):
         parts.append(f"    WHEN latent_int < {cutoff} THEN '{label}'")
