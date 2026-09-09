@@ -106,6 +106,19 @@ Optional, and the most useful five seconds you will spend on this repo.
 
 ## Reporting issues
 
+Issues are open to anyone with a GitHub account — there is no approval step
+and no bar to clear. Two templates exist to save you guessing what is
+useful, and a blank issue stays available because a template should lower
+the cost of reporting, not gate it.
+
 For suspected parity or determinism bugs, include the artifact hash, the
 `compileml inspect` output, and a minimal input row — those three usually
 pin it down.
+
+If you have put the library through its paces against your own data, the
+**Findings** template is for that. Rough notes are welcome; a list of
+observations reaches us, and a polished report that never gets written does
+not. Link a document of your own if that is easier than filing separately —
+[deburky/compileml-fraud-scoring](https://github.com/deburky/compileml-fraud-scoring)
+is what that looks like in practice, and two bugs and several documentation
+fixes came out of it.
