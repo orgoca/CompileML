@@ -9,9 +9,20 @@ The reconciliation identity
 holds exactly, in integers, for every artifact; ``residual2 == 0``
 whenever the compiled trees have depth <= 2.
 
-Cost note: this computes 1 + n + n*(n-1)/2 ensemble traversals per row
-(one per feature, one per feature pair). It is exact, not sampled — but
-it is O(n^2) in feature count. See the spec's limits table.
+Cost: attribution is additive over trees, and a tree responds only to
+the features it splits on. Aggregating per tree rather than per
+perturbation makes the cost ``O(trees)`` and **independent of feature
+count**, instead of the ``1 + n + n(n-1)/2`` ensemble traversals a
+perturbation-based derivation needs.
+
+The quantities are unchanged. Integer addition is associative, so
+regrouping the same sums is bit-identical rather than merely close —
+which is what allows the committed determinism oracle to police this.
+
+The perturbation derivation is kept as
+:func:`contributions_half_micro_reference`, and the validation framework
+cross-checks one against the other. Two independent derivations agreeing
+on every integer is a stronger audit story than one.
 """
 
 from __future__ import annotations
@@ -19,7 +30,31 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from compileml.runtime._intmath import div_rha
-from compileml.runtime.score import score_micro
+from compileml.runtime.score import LEAF, score_micro
+
+# Per tree the fast path enumerates every subset of the features that tree
+# splits on, which is 2**k leaf lookups. At depth <= 2 a tree touches at
+# most three features, so k is tiny and the win is large. A deep tree can
+# touch 2**depth - 1 features, where the enumeration would explode — those
+# fall back to the perturbation derivation, which is linear in trees and
+# quadratic in features rather than exponential in either.
+MAX_ENUMERATED_TREE_FEATURES = 4
+
+
+def _tree_leaf(tree: dict, x: Sequence[float]) -> int:
+    """One tree's leaf payload for a row. The unit the fast path counts."""
+    feature = tree["feature"]
+    threshold = tree["threshold"]
+    left = tree["left"]
+    right = tree["right"]
+    node = 0
+    while feature[node] != LEAF:
+        node = left[node] if x[feature[node]] <= threshold[node] else right[node]
+    return tree["value_micro"][node]
+
+
+def _tree_split_features(tree: dict) -> list[int]:
+    return sorted({f for f in tree["feature"] if f != LEAF})
 
 
 def contributions_half_micro(
@@ -30,6 +65,77 @@ def contributions_half_micro(
     Returns (c2, full, fbase, residual2) where all values are integers,
     c2[j] is twice the micro-unit contribution of feature j, and
     residual2 satisfies the spec §7.4 identity exactly.
+
+    Computed per tree. A tree that does not split on feature ``j``
+    contributes nothing to ``j``'s main effect, because baselining ``j``
+    cannot change which leaf the row reaches. The same cancellation is
+    sharper for pairs: the interaction term
+    ``t(x) - t(x_i) - t(x_j) + t(x_ij)`` vanishes unless the tree splits on
+    **both** ``i`` and ``j``. So each tree only needs its own features
+    enumerated, and the total is independent of how many features the model
+    has.
+    """
+    trees = model["trees"]
+    if any(
+        len(_tree_split_features(t)) > MAX_ENUMERATED_TREE_FEATURES for t in trees
+    ):  # pragma: no cover - deep trees are out of contract for exactness anyway
+        return contributions_half_micro_reference(model, x, baseline)
+
+    n = len(x)
+    d = [0] * n
+    isum = [0] * n
+    full = fbase = int(model["base_micro"])
+    row = list(x)
+
+    for tree in trees:
+        feats = _tree_split_features(tree)
+        k = len(feats)
+        if k == 0:  # a stump with no split contributes a constant to both
+            constant = _tree_leaf(tree, row)
+            full += constant
+            fbase += constant
+            continue
+
+        # Evaluate this tree with every subset of its own features held at
+        # baseline. Bit b of the mask means "feature feats[b] is baselined".
+        values = [0] * (1 << k)
+        for mask in range(1 << k):
+            for b, j in enumerate(feats):
+                row[j] = baseline[j] if (mask >> b) & 1 else x[j]
+            values[mask] = _tree_leaf(tree, row)
+        for j in feats:
+            row[j] = x[j]
+
+        at_row = values[0]
+        # Baselining every feature the tree reads is indistinguishable from
+        # baselining the whole row, since the rest cannot steer it.
+        at_baseline = values[(1 << k) - 1]
+        full += at_row
+        fbase += at_baseline
+
+        for b, j in enumerate(feats):
+            d[j] += at_row - values[1 << b]
+        for a in range(k):
+            for b in range(a + 1, k):
+                ma, mb = 1 << a, 1 << b
+                interaction = at_row - values[ma] - values[mb] + values[ma | mb]
+                isum[feats[a]] += interaction
+                isum[feats[b]] += interaction
+
+    c2 = [2 * d[j] - isum[j] for j in range(n)]
+    residual2 = 2 * (full - fbase) - sum(c2)
+    return c2, full, fbase, residual2
+
+
+def contributions_half_micro_reference(
+    model: dict, x: Sequence[float], baseline: Sequence[float]
+) -> tuple[list[int], int, int, int]:
+    """The perturbation derivation, kept as an independent cross-check.
+
+    Costs ``1 + n + n(n-1)/2`` ensemble traversals and reaches the same
+    integers by a different route. Retained deliberately: the validation
+    framework runs both and compares, and two derivations agreeing beats
+    one derivation asserting.
     """
     n = len(x)
     row = list(x)

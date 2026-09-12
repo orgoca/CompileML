@@ -186,19 +186,13 @@ python benchmarks/run_benchmarks.py
 
 That 2% of Gini is the price of everything above it. It is stated rather than hidden, and it is reproducible on your own data with `compileml.tune.sweep_whitebox`.
 
-One honest qualification: scoring is very fast; full explanation is not equally cheap.
+One honest qualification: scoring is very fast; full explanation costs more.
 
-The exact pairwise decomposition requires:
-
-```text
-1 + p + p(p−1)/2
-```
-
-ensemble traversals for `p` features. It is exact rather than sampled, and that has a cost.
+The exact pairwise decomposition is aggregated per tree, which makes it `O(trees)` and independent of how many features the model has — roughly 0.15 ms per row at 8 features or at 100. It is exact rather than sampled, and it is no longer quadratic: a perturbation-based derivation needs `1 + p + p(p−1)/2` ensemble traversals and takes 39 ms at 100 features where this takes 0.15 ms.
 
 In practice: explain everything. A few milliseconds per decision is real-time for credit decisioning — the bureau pull costs more — and complete attribution on every decision is what turns portfolio questions (marginal analysis, driver drift, fairness cuts) into census facts instead of sample estimates. It also means every production decision carries its own explanation in the record, computed at decision time under the same artifact hash.
 
-The quadratic cost matters in one place: re-explaining an entire book in batch, or artifacts with very wide feature sets. That is what the leaf-time roadmap item addresses — not live latency, which was never the constraint.
+Batch re-explanation over an entire book used to be the one place the cost bit, and wide feature sets made it worse. Per-tree aggregation removed both.
 
 ## Choosing the configuration
 
