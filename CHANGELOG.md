@@ -7,6 +7,26 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- `compileml.fairness` ([#10](https://github.com/orgoca/CompileML/issues/10)):
+  a three-layer fair-lending audit over compiled decisions — outcome,
+  performance, and decision geometry, eleven sections, computed from
+  `decide()` payloads rather than by recomputing the model.
+
+  Layers 1 and 2 are commodity and say so. The third is why the module lives
+  here. **Attribution disparity** decomposes the mean group score gap by
+  feature with a *zero* residual, because the artifact's attribution
+  reconciles to the score exactly at depth ≤ 2 — a share above 100% is then a
+  real finding rather than a rounding artefact. **Reason parity** audits the
+  adverse-action codes an applicant would actually be sent rather than a
+  feature ranking standing in for them. **Boundary fragility** reports who
+  sits near the cutoff, which an adverse impact ratio cannot see.
+
+  No SHAP, and no new dependency. Section 6 refuses rather than approximating
+  when contributions are absent or the artifact's attribution is inexact.
+  Sections lacking inputs are recorded with a reason rather than skipped
+  silently, and nothing here certifies compliance with anything.
+
 ### Fixed
 - Quantile band builders no longer emit edges that `build_artifact` refuses
   ([#41](https://github.com/orgoca/CompileML/issues/41), reported and

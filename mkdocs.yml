@@ -58,6 +58,7 @@ nav:
       - Zero-churn recalibration: howto/recalibrate.md
       - Deploy (runtime, SQL, COBOL): howto/deploy.md
       - Validate before deploying: howto/validate.md
+      - Audit for fair lending: howto/fairness.md
   - FAQ: faq.md
   - Reference:
       - Artifact specification: ARTIFACT_SPEC.md
