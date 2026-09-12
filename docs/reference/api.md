@@ -66,6 +66,22 @@
 
 ::: compileml.runtime.decide
 
+## Fairness
+
+::: compileml.fairness.FairnessAudit
+
+::: compileml.fairness.attribution_disparity
+
+::: compileml.fairness.attribution_concentration
+
+::: compileml.fairness.reason_parity
+
+::: compileml.fairness.boundary_fragility
+
+::: compileml.fairness.feature_swing
+
+::: compileml.fairness.counterfactual
+
 ## Validation
 
 ::: compileml.validate.validate_artifact
