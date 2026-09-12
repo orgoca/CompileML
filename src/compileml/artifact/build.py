@@ -33,7 +33,9 @@ def _band_edges_int(band_edges, scale: int) -> list[int]:
     if collisions:
         raise ValueError(
             f"band edges collide after fixed-point conversion at scale={scale}: "
-            f"{collisions}. Use fewer bands or a larger scale."
+            f"{collisions}. The builders in compileml.bands take scale= and drop "
+            "colliding edges for you; hand-built edges must be strictly increasing "
+            "once multiplied by the scale."
         )
     return edges_int
 
