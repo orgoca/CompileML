@@ -7,6 +7,16 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-12
+
+Fair lending, and exact attribution that no longer costs what it used to.
+
+The two land together for a reason. A fairness audit needs per-feature
+contributions on **every** row, which made it the heaviest consumer of the
+explanation path in the library — so the path got cheap first, and the
+audit's numbers were written once rather than documented and revised.
+
+
 ### Changed
 - Exact attribution is aggregated **per tree** instead of by perturbing one
   feature at a time ([#15](https://github.com/orgoca/CompileML/issues/15)).
