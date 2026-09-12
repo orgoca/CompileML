@@ -136,6 +136,19 @@ inapplicable *positively* — "the model does not use it, so the test does not
 apply" — rather than silently skipping. That is the desired outcome and it
 belongs in the report.
 
+## A worked example
+
+[`examples/05_fairness.ipynb`](https://github.com/orgoca/CompileML/blob/main/examples/05_fairness.ipynb)
+runs all eleven sections end to end, executed by CI on every push so the
+numbers in it cannot quietly stop being true.
+
+It prefers the UCI credit-default panel, where the protected attribute is a
+real one, and falls back to synthetic data offline. On the real panel the
+attribute *is* a model feature, and three sections detect that independently:
+§6 attributes 13.4% of the group score gap to it, §10 shows it as the largest
+difference in cited reason, and §11 flips it and moves 13% of applicants
+across a band boundary.
+
 ## What it refuses to do
 
 Section 6 raises rather than approximating, in two cases:
