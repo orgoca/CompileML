@@ -138,11 +138,15 @@ labels.
 
 ## Why is the full explanation slower than scoring?
 
-Exact pairwise attribution costs `1 + p + p(p−1)/2` ensemble traversals —
-single-digit milliseconds at typical feature counts, which is real-time for
-credit decisioning ([explain everything](concepts/attribution.md#cost-honestly)
-is the recommended default). The cost matters for full-book *batch*
-re-explanation, which the leaf-time roadmap item addresses.
+It is still more work than scoring, but no longer dramatically so, and no
+longer quadratic in feature count. Attribution is aggregated per tree, which
+makes the cost `O(trees)` and independent of `p` — about 0.15 ms per row
+whether the model has 8 features or 100.
+
+That is real-time for credit decisioning, which is why
+[explain everything](concepts/attribution.md#cost-honestly) is the
+recommended default, and it is what makes full-book batch re-explanation
+practical rather than a 23-CPU-hour job.
 
 ## Same artifact, same input — could two machines ever disagree?
 

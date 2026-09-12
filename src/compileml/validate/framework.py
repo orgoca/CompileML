@@ -134,8 +134,17 @@ def validate_artifact(
         rows = X[rng.choice(len(X), size=take, replace=False)]
         claims_exact = bool(artifact["runtime"].get("exact_attribution"))
         identity_ok, exact_ok, worst_residual = True, True, 0
+        # The runtime derives contributions per tree; this re-derives them by
+        # perturbation, which is a different route to the same integers. Two
+        # derivations agreeing is a stronger statement than one asserting.
+        from compileml.runtime.explain import contributions_half_micro_reference
+
+        model_int = artifact["model"]
+        base_row = [float(v) for v in artifact["features"]["baseline"]]
+        derivations_agree = True
         for row in rows:
-            out = decide(artifact, [float(v) for v in row], include_contributions=True)
+            row_f = [float(v) for v in row]
+            out = decide(artifact, row_f, include_contributions=True)
             lhs = 2 * (out["raw_micro"] - out["baseline_micro"])
             rhs = out["attribution_sum_half_micro"] + out["attribution_residual_half_micro"]
             identity_ok &= lhs == rhs
@@ -143,11 +152,22 @@ def validate_artifact(
             worst_residual = max(worst_residual, residual)
             if claims_exact and residual != 0:
                 exact_ok = False
+            c2_ref, full_ref, fbase_ref, res_ref = contributions_half_micro_reference(
+                model_int, row_f, base_row
+            )
+            fast = [int(c["impact_half_micro"]) for c in out["contributions"]]
+            derivations_agree &= (
+                fast == list(c2_ref)
+                and full_ref == out["raw_micro"]
+                and fbase_ref == out["baseline_micro"]
+                and res_ref == out["attribution_residual_half_micro"]
+            )
         checks["2_reconciliation"] = {
-            "pass": bool(identity_ok and exact_ok),
+            "pass": bool(identity_ok and exact_ok and derivations_agree),
             "skipped": False,
             "rows_checked": int(take),
             "identity_holds": bool(identity_ok),
+            "derivations_agree": bool(derivations_agree),
             "claims_exact_attribution": claims_exact,
             "worst_abs_residual_half_micro": int(worst_residual),
         }

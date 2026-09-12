@@ -44,9 +44,26 @@ the decision are not reasons.
 
 ## Cost, honestly
 
-Exact pairwise attribution costs `1 + p + p(p−1)/2` ensemble traversals per
-row — 300 traversals at 23 features (≈8 ms in the pure-Python runtime),
-5,000+ at 100 features. It is exact, not sampled, and priced accordingly.
+Exact pairwise attribution is aggregated **per tree**, which makes its cost
+`O(trees)` and independent of feature count. Attribution is additive over
+trees, and a tree responds only to the features it splits on — so a tree that
+does not split on `j` contributes nothing to `j`, and the interaction term for
+a pair vanishes unless the tree splits on **both**. Only each tree's own
+features need enumerating.
+
+Measured against a perturbation derivation, which needs `1 + p + p(p−1)/2`
+ensemble traversals:
+
+| features | perturbation | per tree |
+|---|---|---|
+| 8 | 0.26 ms | 0.124 ms |
+| 23 | 1.90 ms | 0.144 ms |
+| 50 | 8.84 ms | 0.128 ms |
+| 100 | 39.51 ms | 0.150 ms |
+
+Flat, not merely faster. The integers are identical — integer addition is
+associative, so regrouping the same sums is bit-identical rather than close,
+which is what lets the committed determinism oracle police the change.
 
 **Explain everything.** For live decisioning, single-digit milliseconds is
 real-time — a credit decision's end-to-end budget contains bureau pulls
@@ -59,9 +76,8 @@ composition, driver drift, fairness cuts — become census facts over complete
 attributions rather than sample estimates with selection effects. This is why
 `decide()` defaults to `explain=True`.
 
-Where the quadratic cost is real: re-explaining an entire book in batch
-(10M accounts × 8 ms ≈ 23 CPU-hours, growing with p²) and very wide feature
-sets. The leaf-time exact algorithm on the roadmap addresses exactly that —
-per-tree decomposition makes the cost independent of feature count — and
-additionally enables reason-code emission in the SQL export. Live latency was
+Batch re-explanation used to be the place the cost hurt: 10M accounts at
+8 ms is roughly 23 CPU-hours, and it grew with p². Per-tree aggregation
+removes that, and it is what makes reason-code emission in the SQL export
+tractable rather than impractical. Live latency was
 never the constraint.

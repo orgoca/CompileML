@@ -5,6 +5,7 @@ in conftest.py — if the runtime disagrees, the runtime is wrong.
 """
 
 import json
+import warnings
 
 import pytest
 
@@ -249,3 +250,95 @@ def test_input_precision_float32_changes_routing(artifact):
 
     assert right["raw_micro"] == 300_000 + 200_000  # took the right branch
     assert left["raw_micro"] == 300_000 - 100_000  # f32 quantization: left branch
+
+
+# ------------------------------------------------- two derivations, one answer
+#
+# Attribution is now aggregated per tree rather than by perturbing one feature
+# at a time. Integer addition is associative, so the regrouping must be
+# bit-identical rather than merely close. The perturbation derivation is kept
+# precisely so that claim can be checked rather than asserted (#15).
+
+
+def _random_model(rng, n_trees, n_features, max_depth):
+    """A small quantized ensemble with the shape the runtime expects."""
+    import numpy as np
+
+    from compileml.compile import extract_trees, quantize_model, train_whitebox
+
+    X = rng.standard_normal((600, n_features))
+    latent = 1 / (1 + np.exp(-(1.1 * X[:, 0] + 0.7 * X[:, 1 % n_features])))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model, _ = train_whitebox(
+            X,
+            latent,
+            n_estimators=n_trees,
+            max_depth=max_depth,
+            random_state=int(rng.integers(1e6)),
+        )
+    return quantize_model(extract_trees(model)), X
+
+
+@pytest.mark.parametrize(
+    "n_trees,n_features,max_depth",
+    [(5, 3, 1), (12, 8, 2), (30, 20, 2), (8, 12, 3), (3, 40, 2)],
+)
+def test_per_tree_attribution_matches_the_perturbation_derivation(n_trees, n_features, max_depth):
+    """Same integers by a different route, across shapes and depths."""
+    import numpy as np
+
+    from compileml.runtime.explain import (
+        contributions_half_micro,
+        contributions_half_micro_reference,
+    )
+
+    rng = np.random.default_rng(n_trees * 1000 + n_features * 10 + max_depth)
+    model, X = _random_model(rng, n_trees, n_features, max_depth)
+    baseline = [float(v) for v in np.median(X, axis=0)]
+
+    for i in range(20):
+        row = [float(v) for v in X[i]]
+        fast = contributions_half_micro(model, row, baseline)
+        ref = contributions_half_micro_reference(model, row, baseline)
+        assert fast == ref, f"row {i} disagrees at depth {max_depth}"
+
+
+def test_attribution_cost_does_not_grow_with_feature_count():
+    """The point of #15: work is set by trees, not by how wide the model is.
+
+    Counts leaf traversals rather than timing, so it cannot flake on a busy
+    machine.
+    """
+    import numpy as np
+
+    from compileml.runtime import explain as explain_mod
+
+    calls = {"n": 0}
+    original = explain_mod._tree_leaf
+
+    def counting(tree, x):
+        calls["n"] += 1
+        return original(tree, x)
+
+    counts = {}
+    for n_features in (5, 40):
+        rng = np.random.default_rng(7)
+        model, X = _random_model(rng, 10, n_features, 2)
+        baseline = [float(v) for v in np.median(X, axis=0)]
+        calls["n"] = 0
+        explain_mod._tree_leaf = counting
+        try:
+            explain_mod.contributions_half_micro(model, [float(v) for v in X[0]], baseline)
+        finally:
+            explain_mod._tree_leaf = original
+        counts[n_features] = calls["n"]
+
+    # Eight times the feature count changes the work by a few percent. It is
+    # not identical because tree *structure* varies — a tree splitting on two
+    # features costs four lookups, one splitting on three costs eight — but it
+    # does not scale with p. The perturbation derivation would need
+    # 1 + p + p(p-1)/2 ensemble traversals: 16 at five features, 821 at forty.
+    assert counts[40] < counts[5] * 1.25, counts
+    reference_traversals = {p: 1 + p + p * (p - 1) // 2 for p in (5, 40)}
+    assert reference_traversals[40] > reference_traversals[5] * 25

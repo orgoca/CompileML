@@ -7,6 +7,40 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Changed
+- Exact attribution is aggregated **per tree** instead of by perturbing one
+  feature at a time ([#15](https://github.com/orgoca/CompileML/issues/15)).
+  Attribution is additive over trees, and a tree responds only to the features
+  it splits on — a tree that does not split on `j` contributes nothing to
+  `j`'s main effect, and a pair's interaction term vanishes unless the tree
+  splits on both. So only each tree's own features need enumerating, and the
+  cost becomes `O(trees)`, **independent of feature count**:
+
+  | features | perturbation | per tree |
+  |---|---|---|
+  | 8 | 0.26 ms | 0.124 ms |
+  | 23 | 1.90 ms | 0.144 ms |
+  | 50 | 8.84 ms | 0.128 ms |
+  | 100 | 39.51 ms | 0.150 ms |
+
+  Flat, not merely faster. **The integers do not change.** Integer addition is
+  associative, so regrouping the same sums is bit-identical rather than close,
+  and the committed determinism oracle — which pins every `impact_int` —
+  passes unmodified.
+
+  The perturbation derivation is kept as
+  `contributions_half_micro_reference`, and validation check 2 now runs both
+  and asserts they agree on every sampled row. Two derivations reaching the
+  same integers is a stronger audit statement than one derivation asserting.
+
+  Trees splitting on more than four distinct features fall back to the
+  perturbation path, since enumerating subsets is exponential in a tree's own
+  feature count — irrelevant at depth ≤ 2, where a tree touches at most three.
+
+  The cost claims in the README, the attribution concept page and the FAQ were
+  all true when written and are no longer; each has been rewritten rather than
+  softened.
+
 ### Added
 - `compileml.fairness` ([#10](https://github.com/orgoca/CompileML/issues/10)):
   a three-layer fair-lending audit over compiled decisions — outcome,
