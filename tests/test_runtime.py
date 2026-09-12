@@ -338,7 +338,7 @@ def test_attribution_cost_does_not_grow_with_feature_count():
     # not identical because tree *structure* varies — a tree splitting on two
     # features costs four lookups, one splitting on three costs eight — but it
     # does not scale with p. The perturbation derivation would need
-    # 1 + p + p(p-1)/2 ensemble traversals: 16 at five features, 821 at forty.
+    # 2 + p + p(p-1)/2 ensemble traversals: 17 at five features, 822 at forty.
     assert counts[40] < counts[5] * 1.25, counts
-    reference_traversals = {p: 1 + p + p * (p - 1) // 2 for p in (5, 40)}
+    reference_traversals = {p: 2 + p + p * (p - 1) // 2 for p in (5, 40)}
     assert reference_traversals[40] > reference_traversals[5] * 25

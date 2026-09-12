@@ -1,5 +1,6 @@
 {
   "seed": 42,
+  "compileml": "0.5.0",
   "python": "3.14.3",
   "machine": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
   "os": "Windows 11",
@@ -19,16 +20,53 @@
   },
   "latency": {
     "score_band_pd_median_ms": 0.03,
-    "score_band_pd_p95_ms": 0.038,
-    "full_explain_median_ms": 8.4,
-    "full_explain_p95_ms": 12.2,
+    "score_band_pd_p95_ms": 0.043,
+    "full_explain_median_ms": 0.625,
+    "full_explain_p95_ms": 0.842,
     "band_ladder_median_us": 0.2,
-    "note": "pure-Python stdlib runtime, single row; explain is exact pairwise attribution, O(p^2) traversals at p=23"
+    "explain_by_features": {
+      "8": {
+        "per_tree_ms": 0.622,
+        "perturbation_ms": 0.938,
+        "per_tree_walks": 792,
+        "perturbation_walks": 4560,
+        "features_split_on": 8
+      },
+      "23": {
+        "per_tree_ms": 0.705,
+        "perturbation_ms": 6.786,
+        "per_tree_walks": 912,
+        "perturbation_walks": 33360,
+        "features_split_on": 23
+      },
+      "50": {
+        "per_tree_ms": 0.781,
+        "perturbation_ms": 32.26,
+        "per_tree_walks": 944,
+        "perturbation_walks": 153240,
+        "features_split_on": 50
+      },
+      "100": {
+        "per_tree_ms": 0.759,
+        "perturbation_ms": 131.314,
+        "per_tree_walks": 936,
+        "perturbation_walks": 606240,
+        "features_split_on": 88
+      }
+    },
+    "explain_by_features_config": {
+      "n_trees": 120,
+      "max_depth": 2,
+      "rows_timed": 40,
+      "measures": "attribution only, per row: median ms, and tree walks",
+      "derivations_agree": true
+    },
+    "note": "pure-Python stdlib runtime, single row, 120 depth-2 trees at p=23. full_explain is the whole decide() payload: score, band, PD, exact attribution and reason codes. Attribution is aggregated per tree, so its cost is O(trees) and independent of feature count; explain_by_features times the attribution alone by both derivations, with tree walks per row as the machine-independent measure."
   },
   "artifact": {
-    "size_kb": 97.1,
+    "size_kb": 97.2,
     "n_trees": 120,
-    "hash": "a6be68bc9fbd7fe1\u2026",
+    "hash": "58795bc5870fc9bd\u2026",
     "exact_attribution": true
   },
   "determinism": {

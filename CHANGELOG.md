@@ -7,6 +7,39 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Fixed
+- `benchmarks/results.json` had not been regenerated since `0.1.0-dev` and
+  still described the perturbation attribution path. Re-run against 0.5.0: a
+  fully explained decision is **0.62 ms** median, down from 8.4 ms.
+
+  The benchmark now also times attribution alone at 8, 23, 50 and 100
+  features by both derivations, and counts **tree walks per row** alongside
+  the milliseconds. Walks are exact and machine-independent — 936 per row at
+  100 features against 606,240 for the perturbation path — so the flatness
+  claim no longer rests on one laptop's timings. It refuses to report a
+  timing if the two derivations disagree on any integer.
+
+  It records the CompileML version it measured. Running the benchmark against
+  a stale installed copy had silently reproduced the old figure; it cannot
+  pass for a measurement of the checked-out source any more.
+
+  The retention block is unchanged. The recorded artifact hash changed
+  because three metadata fields entered the hashed document —
+  `bands.requested_n_bands` and `bands.scale` (#41, in 0.5.0) and
+  `compileml_version` — while the model, band edges and calibration are
+  bit-identical. Because the version string is hashed, that hash will move
+  with every release; `rebuild_hash_identical` is the determinism signal.
+
+  The 0.5.0 entry's cost table was measured on a 30-tree ensemble, where the
+  benchmark uses 120. Per-tree cost scaling with tree count is the claim
+  behaving as stated.
+
+- Cost claims that #15 missed: the `decide()` docstring, the quickstart
+  notebook, the deploy guide, and the README metrics table, which was
+  hand-transcribed and contradicted its own prose. The perturbation path's
+  traversal count is corrected to `2 + p + p(p−1)/2`, verified by
+  instrumentation; it scores the baseline as well as the row.
+
 ## [0.5.0] - 2026-09-12
 
 Fair lending, and exact attribution that no longer costs what it used to.

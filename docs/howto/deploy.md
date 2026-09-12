@@ -22,13 +22,16 @@ def handler(event, context):
 ```
 
 Operational note: explain everything — the default. A fully explained
-decision costs single-digit milliseconds at typical feature counts, which is
+decision costs under a millisecond, and because attribution is
+aggregated per tree that cost does not grow with feature count. It is
 real-time against any credit-decisioning SLA, and it keeps one payload shape
 flowing through downstream systems with the explanation stored as part of the
-decision record. `decide(…, explain=False)` remains available as the
-sub-millisecond path for bulk pre-screening where no decision is communicated
-to a customer; full-book batch re-explanation is where the O(features²) cost
-is real, and the leaf-time roadmap item targets it.
+decision record. `decide(…, explain=False)` remains available as the faster
+score-only path for bulk pre-screening where no decision is communicated to a
+customer. Full-book batch re-explanation, once the expensive case, is now
+linear in trees; see the
+[benchmark](https://github.com/orgoca/CompileML/blob/main/benchmarks/results.json)
+for measured figures.
 
 Missing values follow the artifact's `missing_policy` — `"baseline"` re-applies
 the training-time imputation at decision time; `"reject"` refuses the row. NaN

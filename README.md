@@ -165,11 +165,14 @@ The artifact includes a SHA-256 hash. Loaders verify it by default and reject a 
 
 The committed benchmark uses deterministic synthetic credit data with 40,000 rows and 23 features. It runs on a consumer laptop through the pure-Python runtime.
 
-You can reproduce every number with:
+You can reproduce every number from an editable install of the checked-out source:
 
 ```bash
+pip install -e .
 python benchmarks/run_benchmarks.py
 ```
+
+`results.json` records the CompileML version it measured, so a run against an older installed copy cannot pass for a measurement of the current code.
 
 | Metric                                     |                      Value |
 | ------------------------------------------ | -------------------------: |
@@ -179,7 +182,8 @@ python benchmarks/run_benchmarks.py
 | Spearman correlation, teacher vs. artifact |                      0.977 |
 | Score + band + calibrated PD               |         **0.03 ms median** |
 | Score + band + calibrated PD, p95          |                    0.04 ms |
-| Full exact explanation, 23 features        |              8.4 ms median |
+| Full explained decision, 120 trees         |             0.62 ms median |
+| Full explained decision, p95               |                    0.84 ms |
 | Band assignment alone                      |                     0.2 µs |
 | Artifact size                              |                      97 KB |
 | Identical hash on rebuild                  |                        Yes |
@@ -188,9 +192,20 @@ That 2% of Gini is the price of everything above it. It is stated rather than hi
 
 One honest qualification: scoring is very fast; full explanation costs more.
 
-The exact pairwise decomposition is aggregated per tree, which makes it `O(trees)` and independent of how many features the model has — roughly 0.15 ms per row at 8 features or at 100. It is exact rather than sampled, and it is no longer quadratic: a perturbation-based derivation needs `1 + p + p(p−1)/2` ensemble traversals and takes 39 ms at 100 features where this takes 0.15 ms.
+The exact pairwise decomposition is aggregated per tree, which makes it `O(trees)` and independent of how many features the model has. A depth-2 tree is walked at most eight times however wide the model is. A perturbation-based derivation instead scores the whole ensemble `2 + p + p(p−1)/2` times.
 
-In practice: explain everything. A few milliseconds per decision is real-time for credit decisioning — the bureau pull costs more — and complete attribution on every decision is what turns portfolio questions (marginal analysis, driver drift, fairness cuts) into census facts instead of sample estimates. It also means every production decision carries its own explanation in the record, computed at decision time under the same artifact hash.
+On the benchmark's 120-tree ensemble, attribution alone:
+
+| features | perturbation | per tree | tree walks, perturbation | tree walks, per tree |
+| -------: | -----------: | -------: | -----------------------: | -------------------: |
+| 8 | 0.94 ms | 0.62 ms | 4,560 | 792 |
+| 23 | 6.79 ms | 0.70 ms | 33,360 | 912 |
+| 50 | 32.26 ms | 0.78 ms | 153,240 | 944 |
+| 100 | 131.31 ms | 0.76 ms | 606,240 | 936 |
+
+The walk counts are exact and hold on any machine; the milliseconds belong to one laptop. Cost follows walks, and walks follow tree structure rather than width: the sweep's models are fitted to a target that uses every feature, so more of their trees split on three distinct features than the headline model's do, which is why attribution alone at 23 features here costs slightly more than the full decision in the table above. At eight features the difference between the two derivations is modest. At a hundred it is the difference between a quadratic cost and a flat one. It is exact rather than sampled, and both derivations reach identical integers on every timed row.
+
+In practice: explain everything. Under a millisecond per decision is real-time for credit decisioning — the bureau pull costs more — and complete attribution on every decision is what turns portfolio questions (marginal analysis, driver drift, fairness cuts) into census facts instead of sample estimates. It also means every production decision carries its own explanation in the record, computed at decision time under the same artifact hash.
 
 Batch re-explanation over an entire book used to be the one place the cost bit, and wide feature sets made it worse. Per-tree aggregation removed both.
 
