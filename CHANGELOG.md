@@ -7,6 +7,22 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-12
+
+Documentation only — no change to runtime code, no API or behaviour change.
+Three docstrings in `src/` are corrected; nothing executable is. It exists
+because two published surfaces only move on a release: the PyPI project page
+renders the README at build time, and the documentation site pins its API
+reference to a release tag so the docstrings it shows are the ones
+`pip install` delivers. Both were still stating the cost of the attribution
+path 0.5.0 replaced.
+
+The committed benchmark records `"compileml": "0.5.0"`. That is accurate —
+it was measured on 0.5.0 — and it was deliberately not re-run for the
+version label: the runtime is identical between the two releases, and
+re-measuring identical code would only move the timings by noise and make a
+reviewed result look like a performance change.
+
 ### Fixed
 - `benchmarks/results.json` had not been regenerated since `0.1.0-dev` and
   still described the perturbation attribution path. Re-run against 0.5.0: a
@@ -39,6 +55,7 @@ inside each artifact (`schema_version`).
   hand-transcribed and contradicted its own prose. The perturbation path's
   traversal count is corrected to `2 + p + p(p−1)/2`, verified by
   instrumentation; it scores the baseline as well as the row.
+- The README's examples list had dropped `05_fairness.ipynb`.
 
 ## [0.5.0] - 2026-09-12
 
