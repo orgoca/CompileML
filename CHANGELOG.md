@@ -7,6 +7,25 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Fixed
+- Quantile band builders no longer emit edges that `build_artifact` refuses
+  ([#41](https://github.com/orgoca/CompileML/issues/41), reported and
+  diagnosed by [@deburky](https://github.com/deburky) against real fraud
+  data). `_quantile_edges` separated tied edges by `1e-12`, which satisfies a
+  float strictly-increasing check and then collapses again at the display
+  scale, so the ladder failed two steps later with an error naming the
+  symptom rather than the cause. On a low base rate this is the ordinary
+  case, not an edge one: a squared-error regressor distilled onto a skewed
+  target clips a share of rows to exactly zero, and once that pinned mass
+  exceeds about `1 / n_bands` of the volume a quantile cut necessarily lands
+  inside it.
+
+  `quantile_bands` and `monotone_quantile_bands` now take `scale=` and drop
+  edges that would collide there, returning fewer bands than requested rather
+  than an invalid ladder. The reduction warns and is recorded as
+  `metadata["requested_n_bands"]`. The tuning guide explains the bound and
+  points at the upstream cause.
+
 ## [0.4.3] - 2026-09-02
 
 The first release since 0.4.0 whose tag, package version and contents agree.

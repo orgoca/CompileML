@@ -108,6 +108,34 @@ AUC with its verdict, minimum band volume, monotonicity violations, and any
 integer-edge collisions (a K too fine for the display scale to represent —
 the build would refuse it anyway).
 
+### The ceiling a clipped latent puts on K
+
+There is an upper bound on K that has nothing to do with discrimination.
+
+`train_whitebox` fits squared error to the teacher's probabilities, so on a
+low base rate a share of its predictions come out below zero and clip to
+exactly zero. Those rows are then *pinned*: they share one latent value and
+no cut can separate them. Once the pinned mass is larger than one band's
+worth of volume — roughly when
+
+```
+share_pinned > 1 / n_bands
+```
+
+— at least one quantile cut lands inside the mass, both its edges round to
+the same integer at the display scale, and that band would be empty.
+
+The builders handle it: colliding edges are dropped, you get fewer bands than
+you asked for, and a warning says so. Nothing breaks. But it is worth
+recognising the symptom, because the honest fix is usually upstream. A large
+pinned share is the same signal `build_artifact` reports as
+`share_outside_unit_interval`, and it means the distillation is overshooting
+— fewer rounds or a lower learning rate will often recover the bands you
+wanted.
+
+At a 5% bad rate, roughly 10% of rows pinned is typical, which caps a clean
+ladder at about ten bands. At 2-3%, expect to lose one or two more.
+
 ## Money on the table: within-band AUC
 
 A band ladder discards rank information by design; the governed question is
