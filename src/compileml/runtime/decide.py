@@ -59,7 +59,8 @@ def decide(
 
     With ``explain=False`` this is the sub-millisecond score path: latent,
     band, and calibrated PD only. With ``explain=True`` it adds the exact
-    integer attribution and reason blocks (O(n_features^2) traversals).
+    integer attribution and reason blocks. Attribution is aggregated per
+    tree, so its cost is O(trees) and independent of feature count.
     """
     t0 = perf_counter()
     x = _prepare_row(artifact, features)

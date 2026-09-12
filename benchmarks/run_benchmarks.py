@@ -22,14 +22,22 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
+import compileml
 from compileml.artifact import build_artifact, save_artifact
-from compileml.bands import monotone_quantile_bands
+from compileml.bands import monotone_quantile_bands, quantile_bands
 from compileml.compile import train_whitebox
-from compileml.runtime import decide, load_artifact
+from compileml.runtime import LEAF, contributions_half_micro, decide, load_artifact
 from compileml.runtime.bands import band_index
+from compileml.runtime.explain import contributions_half_micro_reference
 
 SEED = 42
 HERE = Path(__file__).resolve().parent
+
+# The explanation-cost sweep. Tree count matches the headline artifact so the
+# sweep and the headline describe a model of the same size.
+SWEEP_FEATURES = (8, 23, 50, 100)
+SWEEP_TREES = 120
+SWEEP_ROWS = 40
 
 
 def make_credit_data(n: int, p: int, rng: np.random.Generator):
@@ -47,6 +55,80 @@ def make_credit_data(n: int, p: int, rng: np.random.Generator):
     return X, y
 
 
+def explain_cost_by_features() -> tuple[dict, dict]:
+    """Attribution cost alone, at several feature counts, by both derivations.
+
+    Times the decomposition itself rather than ``decide()``, so fixed per-row
+    work — row preparation, banding, calibration, reason formatting — cannot
+    flatten the curve and make the claim look better than it is.
+
+    The target spreads signal over every feature, so at 100 features the
+    trees genuinely split on many of them. Flatness here is not an artefact
+    of a model that ignores most of its inputs; ``features_split_on`` records
+    how many it actually uses.
+
+    Milliseconds belong to one machine, so each entry also counts tree walks
+    per row, which belong to the algorithm. The per-tree path walks each tree
+    once per subset of the features that tree splits on, ``sum(2**k)`` —
+    at most eight walks a tree at depth 2, whatever ``p`` is. The
+    perturbation path scores the whole ensemble ``2 + p + p(p-1)/2`` times:
+    the row, the baseline, each feature perturbed, each pair perturbed.
+    Both counts were checked against instrumented runs.
+
+    Both derivations must reach identical integers on every timed row. A
+    timing is not reported for a path that disagrees with the other.
+    """
+    by_p: dict = {}
+    for p in SWEEP_FEATURES:
+        rng = np.random.default_rng(SEED + p)
+        X = rng.standard_normal((4000, p))
+        w = rng.choice([-1.0, 1.0], size=p) / np.sqrt(np.arange(1, p + 1))
+        target = 1.0 / (1.0 + np.exp(-(X @ w)))
+
+        whitebox, _ = train_whitebox(X, target, n_estimators=SWEEP_TREES, random_state=SEED)
+        latent = np.clip(whitebox.predict(X), 0, 1)
+        artifact = build_artifact(
+            whitebox,
+            [f"f{j:03d}" for j in range(p)],
+            np.median(X, axis=0),
+            quantile_bands(latent, n_bands=5),
+        )
+        model = artifact["model"]
+        baseline = [float(b) for b in artifact["features"]["baseline"]]
+
+        per_tree_ms, perturbation_ms = [], []
+        for row in ([float(v) for v in r] for r in X[:SWEEP_ROWS]):
+            t0 = time.perf_counter()
+            fast = contributions_half_micro(model, row, baseline)
+            per_tree_ms.append((time.perf_counter() - t0) * 1000)
+
+            t0 = time.perf_counter()
+            reference = contributions_half_micro_reference(model, row, baseline)
+            perturbation_ms.append((time.perf_counter() - t0) * 1000)
+
+            if fast != reference:
+                raise AssertionError(f"attribution derivations disagree at p={p}")
+
+        split_sets = [{f for f in tree["feature"] if f != LEAF} for tree in model["trees"]]
+        by_p[str(p)] = {
+            "per_tree_ms": round(statistics.median(per_tree_ms), 3),
+            "perturbation_ms": round(statistics.median(perturbation_ms), 3),
+            "per_tree_walks": sum(2 ** len(fs) for fs in split_sets),
+            "perturbation_walks": (2 + p + p * (p - 1) // 2) * len(split_sets),
+            "features_split_on": len(set().union(*split_sets)),
+        }
+        print(f"  p={p:>3}: {by_p[str(p)]}")
+
+    config = {
+        "n_trees": SWEEP_TREES,
+        "max_depth": 2,
+        "rows_timed": SWEEP_ROWS,
+        "measures": "attribution only, per row: median ms, and tree walks",
+        "derivations_agree": True,  # reaching this line requires it
+    }
+    return by_p, config
+
+
 def median_p95(samples_ms: list[float]) -> tuple[float, float]:
     return (
         statistics.median(samples_ms),
@@ -58,6 +140,9 @@ def main() -> None:
     rng = np.random.default_rng(SEED)
     results: dict = {
         "seed": SEED,
+        # The version measured, so a benchmark run against a stale installed
+        # copy cannot pass for a measurement of the checked-out source.
+        "compileml": compileml.__version__,
         "python": platform.python_version(),
         "machine": platform.processor() or platform.machine(),
         "os": f"{platform.system()} {platform.release()}",
@@ -153,17 +238,27 @@ def main() -> None:
         band_index(latent_int, edges)
         band_us.append((time.perf_counter() - t0) * 1_000_000)
 
+    print("measuring explanation cost by feature count…")
+    by_features, by_features_config = explain_cost_by_features()
+
+    n_trees = len(artifact["model"]["trees"])
     s_med, s_p95 = median_p95(score_ms)
     e_med, e_p95 = median_p95(explain_ms)
     results["latency"] = {
         "score_band_pd_median_ms": round(s_med, 3),
         "score_band_pd_p95_ms": round(s_p95, 3),
-        "full_explain_median_ms": round(e_med, 1),
-        "full_explain_p95_ms": round(e_p95, 1),
+        "full_explain_median_ms": round(e_med, 3),
+        "full_explain_p95_ms": round(e_p95, 3),
         "band_ladder_median_us": round(statistics.median(band_us), 2),
+        "explain_by_features": by_features,
+        "explain_by_features_config": by_features_config,
         "note": (
-            "pure-Python stdlib runtime, single row; explain is exact pairwise "
-            f"attribution, O(p^2) traversals at p={p}"
+            f"pure-Python stdlib runtime, single row, {n_trees} depth-2 trees at "
+            f"p={p}. full_explain is the whole decide() payload: score, band, PD, "
+            "exact attribution and reason codes. Attribution is aggregated per "
+            "tree, so its cost is O(trees) and independent of feature count; "
+            "explain_by_features times the attribution alone by both derivations, "
+            "with tree walks per row as the machine-independent measure."
         ),
     }
 
@@ -208,8 +303,8 @@ def main() -> None:
             f"{lat['score_band_pd_median_ms']} / {lat['score_band_pd_p95_ms']} ms",
         ),
         (
-            f"full explanation latency (median, p={r['n_features']})",
-            f"{lat['full_explain_median_ms']} ms",
+            "full explained decision (median / p95)",
+            f"{lat['full_explain_median_ms']} / {lat['full_explain_p95_ms']} ms",
         ),
         ("band ladder only", f"{lat['band_ladder_median_us']} µs"),
         ("artifact size", f"{art['size_kb']} KB"),
@@ -219,6 +314,15 @@ def main() -> None:
     print("|---|---|")
     for name, value in rows:
         print(f"| {name} | {value} |")
+
+    print(f"\nattribution alone, {SWEEP_TREES} depth-2 trees (median ms per row)\n")
+    print("| features | perturbation ms | per tree ms | perturbation walks | per tree walks |")
+    print("|---|---|---|---|---|")
+    for feats, v in lat["explain_by_features"].items():
+        print(
+            f"| {feats} | {v['perturbation_ms']} | {v['per_tree_ms']} "
+            f"| {v['perturbation_walks']:,} | {v['per_tree_walks']:,} |"
+        )
 
 
 if __name__ == "__main__":

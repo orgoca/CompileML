@@ -12,7 +12,7 @@ whenever the compiled trees have depth <= 2.
 Cost: attribution is additive over trees, and a tree responds only to
 the features it splits on. Aggregating per tree rather than per
 perturbation makes the cost ``O(trees)`` and **independent of feature
-count**, instead of the ``1 + n + n(n-1)/2`` ensemble traversals a
+count**, instead of the ``2 + n + n(n-1)/2`` ensemble traversals a
 perturbation-based derivation needs.
 
 The quantities are unchanged. Integer addition is associative, so
@@ -132,7 +132,8 @@ def contributions_half_micro_reference(
 ) -> tuple[list[int], int, int, int]:
     """The perturbation derivation, kept as an independent cross-check.
 
-    Costs ``1 + n + n(n-1)/2`` ensemble traversals and reaches the same
+    Costs ``2 + n + n(n-1)/2`` ensemble traversals — the row, the baseline,
+    each feature perturbed, each pair perturbed — and reaches the same
     integers by a different route. Retained deliberately: the validation
     framework runs both and compares, and two derivations agreeing beats
     one derivation asserting.

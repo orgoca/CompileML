@@ -51,21 +51,31 @@ does not split on `j` contributes nothing to `j`, and the interaction term for
 a pair vanishes unless the tree splits on **both**. Only each tree's own
 features need enumerating.
 
-Measured against a perturbation derivation, which needs `1 + p + p(p−1)/2`
-ensemble traversals:
+A depth-2 tree splits on at most three features, so it is walked at most
+2³ = 8 times however wide the model is. A perturbation derivation scores the
+whole ensemble `2 + p + p(p−1)/2` times — the row, the baseline, each feature
+perturbed, each pair perturbed.
 
-| features | perturbation | per tree |
-|---|---|---|
-| 8 | 0.26 ms | 0.124 ms |
-| 23 | 1.90 ms | 0.144 ms |
-| 50 | 8.84 ms | 0.128 ms |
-| 100 | 39.51 ms | 0.150 ms |
+From the committed benchmark, attribution alone on a 120-tree ensemble:
 
-Flat, not merely faster. The integers are identical — integer addition is
-associative, so regrouping the same sums is bit-identical rather than close,
-which is what lets the committed determinism oracle police the change.
+| features | perturbation | per tree | tree walks, perturbation | tree walks, per tree |
+|---|---|---|---|---|
+| 8 | 0.94 ms | 0.62 ms | 4,560 | 792 |
+| 23 | 6.79 ms | 0.70 ms | 33,360 | 912 |
+| 50 | 32.26 ms | 0.78 ms | 153,240 | 944 |
+| 100 | 131.31 ms | 0.76 ms | 606,240 | 936 |
 
-**Explain everything.** For live decisioning, single-digit milliseconds is
+Flat, not merely faster. The walk counts are exact and hold on any machine;
+the milliseconds are one laptop's. The benchmark's target spreads signal over
+every feature, so at 100 features the trees genuinely split on 88 of them —
+the flatness is not a model ignoring its inputs. At eight features the gain
+is modest; the gap widens with the square of the feature count.
+
+The integers are identical — integer addition is associative, so regrouping
+the same sums is bit-identical rather than close, which is what lets the
+committed determinism oracle police the change.
+
+**Explain everything.** For live decisioning, under a millisecond is
 real-time — a credit decision's end-to-end budget contains bureau pulls
 measured in hundreds of milliseconds, so the explanation is statistically
 invisible. What explain-everything buys is structural: the explanation is
@@ -77,7 +87,7 @@ attributions rather than sample estimates with selection effects. This is why
 `decide()` defaults to `explain=True`.
 
 Batch re-explanation used to be the place the cost hurt: 10M accounts at
-8 ms is roughly 23 CPU-hours, and it grew with p². Per-tree aggregation
-removes that, and it is what makes reason-code emission in the SQL export
-tractable rather than impractical. Live latency was
-never the constraint.
+8.4 ms is roughly 23 CPU-hours, and it grew with p². At 0.62 ms it is under
+two, and it no longer grows with feature count. That is what makes
+reason-code emission in the SQL export tractable rather than impractical.
+Live latency was never the constraint.
