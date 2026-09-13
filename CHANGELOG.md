@@ -7,6 +7,14 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Changed
+- README: the roadmap still listed per-tree attribution and the fairness
+  audit as future work, both shipped in 0.5.0. It adds an *Independent
+  evaluation* section summarising
+  [@deburky](https://github.com/deburky)'s test of 0.4.3 on fraud data,
+  including what it did not cover, and links the fairness guide.
+- The 0.5.0 entry was missing the single-band SQL fix (#40, #42); added.
+
 ### Fixed
 - `attribution_disparity` (§6) took group means in floats, so an exact
   decomposition reported a residual of about ±1e-11 whose sign depended on
@@ -148,6 +156,14 @@ audit's numbers were written once rather than documented and revised.
   silently, and nothing here certifies compliance with anything.
 
 ### Fixed
+- `export_sql` emitted `CASE ELSE 'G01' END`, which is not valid SQL, for a
+  single-band artifact; it now emits the label directly
+  ([#40](https://github.com/orgoca/CompileML/issues/40), reported by
+  [@deburky](https://github.com/deburky), fixed by
+  [@tote10](https://github.com/tote10) in
+  [#42](https://github.com/orgoca/CompileML/pull/42) — the project's first
+  outside contribution). *This entry was missing when 0.5.0 was released and
+  was added afterwards; the fix itself shipped in 0.5.0.*
 - Quantile band builders no longer emit edges that `build_artifact` refuses
   ([#41](https://github.com/orgoca/CompileML/issues/41), reported and
   diagnosed by [@deburky](https://github.com/deburky) against real fraud
