@@ -100,6 +100,8 @@
 
 ::: compileml.export.export_cobol
 
+::: compileml.export.ExportError
+
 ## Visualization (`compileml[viz]`)
 
 ::: compileml.viz.plots.waterfall
