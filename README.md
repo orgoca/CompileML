@@ -405,7 +405,6 @@ Recently shipped: exact attribution aggregated per tree, so explaining a decisio
 
 The current priorities are:
 
-* emit reason codes from the SQL export, as the COBOL export now does;
 * add Java and C exporters;
 * add an optional NumPy batch scorer.
 

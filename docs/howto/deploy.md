@@ -55,6 +55,41 @@ The test suite executes the generated SQL in a real engine and asserts
 Impute before the query (per the artifact's baseline); SQL `NULL` comparisons
 would silently skip branches, so the exporter's contract is non-null inputs.
 
+### Reason codes in the warehouse
+
+```bash
+compileml export decision.json --target sql --explain --top-k 4 --out scorer.sql
+```
+
+`--explain` (`export_sql(..., explain=True)`) adds, on every row,
+`reason_neg_<s>_code` / `reason_neg_<s>_impact` and `reason_pos_<s>_code` /
+`reason_pos_<s>_impact` for slots 1 to `top_k`, `NULL` where a slot is empty.
+They are the codes and display-scale integer impacts `decide(..., explain=True)`
+returns, in order; the test suite executes the query in SQLite and checks them
+slot by slot, including an artifact built to force ties. One row comes out per
+row in, and no row key is needed: a feature's rank within its row is counted
+with `CASE` arithmetic rather than window functions. Working columns used along
+the way are prefixed `cml_`; select the ones you need.
+
+The working steps are `MATERIALIZED` CTEs, because later steps refer to earlier
+columns many times and an engine that inlines them re-derives every reference
+— on a 23-feature, 30-tree artifact, SQLite took 492 s for 50 rows inlined and
+0.18 s materialized. That sets the engine floor for `--explain`: **SQLite 3.35+,
+PostgreSQL 12+, DuckDB.** Engines without `MATERIALIZED` (BigQuery, Snowflake,
+SQL Server) can run the score-only query but not this one.
+
+The query grows with the square of the feature count. Measured in SQLite on a
+120-tree artifact:
+
+| features | score-only query | explain query | 1,000 rows |
+|---:|---:|---:|---:|
+| 23 | 0.03 MB | 0.56 MB | 0.40 s |
+| 50 | 0.03 MB | 0.93 MB | 0.66 s |
+| 100 | 0.03 MB | 2.21 MB | 1.54 s |
+
+An artifact whose attribution is not exact is refused with
+`EXPLAIN_NOT_EXACT`, as in the COBOL export below.
+
 ## 3. COBOL (mainframes, core banking)
 
 ```bash
@@ -104,9 +139,7 @@ CLI prints it and exits with status 2:
 | Code | Cause | What to do |
 |---|---|---|
 | `EXPLAIN_NOT_EXACT` | The artifact's attribution is not exact (whitebox depth > 2), so reasons would not reconcile to the score. | Compile at depth ≤ 2, or export without `--explain`. |
-| `REASON_CODE_NOT_ASCII` | A reason code — from the dictionary, or the `NEGATIVE_<name>` fallback — is not printable ASCII, which mainframe character sets would not carry unchanged. | Give that feature an ASCII `code` in the reason dictionary, or suppress it. |
-
-The SQL export does not emit reason codes yet.
+| `REASON_CODE_NOT_ASCII` | COBOL only. A reason code — from the dictionary, or the `NEGATIVE_<name>` fallback — is not printable ASCII, which mainframe character sets would not carry unchanged. | Give that feature an ASCII `code` in the reason dictionary, or suppress it. |
 
 ## Which surface for what
 
@@ -114,7 +147,7 @@ The SQL export does not emit reason codes yet.
 |---|---|---|
 | runtime `decide(explain=True)` | band, PD, exact reasons | decisioning API, adverse-action notices |
 | runtime `decide(explain=False)` | band, PD, latent | bulk pre-screening (no customer-facing decision) |
-| SQL export | band, PD, latent per row | warehouse batch, portfolio re-score |
+| SQL export | band, PD, latent per row; reason codes and impacts with `--explain` | warehouse batch, portfolio re-score |
 | COBOL export | band, PD, latent; reason codes and impacts with `--explain` | core-banking / mainframe rails |
 
 Whatever the surface, the integers agree — that's the point.
