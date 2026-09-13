@@ -8,10 +8,29 @@ inside each artifact (`schema_version`).
 ## [Unreleased]
 
 ### Added
+- `compileml.monitor` ([#9](https://github.com/orgoca/CompileML/issues/9)):
+  stability monitoring limited to what a compiled artifact makes possible.
+  - `drift_decomposition(reference_decisions, current_decisions)` splits the
+    change in mean raw score, current minus reference, into per-feature
+    shifts that sum to it with `==`. It reports each side's mean `latent_int`
+    as context only, since the deployed latent is clamped.
+  - `band_drift(artifact, decisions, y)` compares observed bad rates, with
+    Wilson intervals, against the PD the artifact emitted, grouped by the
+    band each decision logged.
+  - `baseline_staleness(artifact, X_reference, X_current)` measures how far
+    the frozen baseline has moved in population rank, with missing rates.
+
+  No PSI, CSI or distribution tests: `docs/howto/monitor.md` explains how to
+  feed existing tools from the logged bands, and why outcomes must have
+  matured before band calibration means anything.
 - `CODE_OF_CONDUCT.md`: the Contributor Covenant, version 2.1, unmodified
   apart from the reporting contact.
 
 ### Changed
+- The exact gap arithmetic behind fairness §6 moved into one private module
+  that `attribution_disparity` and `drift_decomposition` both call, so the
+  float-means defect fixed in 0.5.2 cannot return through a second copy. §6
+  output is byte-identical before and after on the UCI panel.
 - `CONTRIBUTING.md` states the two-sides rule: the learning side may use any
   library; the inference side, where the artifact decides, is standard-library
   only and simple arithmetic, always. It links the Code of Conduct, and its

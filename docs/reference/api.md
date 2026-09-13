@@ -82,6 +82,14 @@
 
 ::: compileml.fairness.counterfactual
 
+## Monitoring
+
+::: compileml.monitor.drift_decomposition
+
+::: compileml.monitor.band_drift
+
+::: compileml.monitor.baseline_staleness
+
 ## Validation
 
 ::: compileml.validate.validate_artifact
