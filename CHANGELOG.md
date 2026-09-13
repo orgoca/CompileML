@@ -8,6 +8,14 @@ inside each artifact (`schema_version`).
 ## [Unreleased]
 
 ### Added
+- The COBOL export emits the calibrated PD
+  ([#14](https://github.com/orgoca/CompileML/issues/14), part 1). The
+  calibration table becomes an `EVALUATE` that leaves `F-PD-PPM` populated,
+  with the same first-match rule and `div_rha` interpolation as the runtime
+  and the SQL export, for `linear_int`, `step` and uncalibrated artifacts.
+  The spec requires every exporter to reproduce §4–§6, and COBOL now does.
+  The GnuCOBOL run-parity test checks latent, band and PD row by row in all
+  three modes, including rows clamped at both ends of the score range.
 - FAQ: *Why not PMML, ONNX, or m2cgen?*
   ([#17](https://github.com/orgoca/CompileML/issues/17)) — where each is the
   better choice, what CompileML trades for its guarantee (a distilled model,
@@ -16,6 +24,12 @@ inside each artifact (`schema_version`).
   PMML scorecards already carry.
 
 ### Fixed
+- A feature whose sanitized COBOL name matched one of the program's own
+  working-storage fields (for example `accum_micro` or `pd_ppm`) would have
+  shadowed it. Those names are now reserved, and such a feature gets a
+  suffix.
+- The deploy guide said reason codes were a SQL concern; neither export
+  emits them yet.
 - The FAQ's SHAP answer said explanations travel into the SQL and COBOL
   exports. Neither emits reason codes yet (#14); it now says so.
 

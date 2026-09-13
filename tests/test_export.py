@@ -1,11 +1,12 @@
 """Export parity tests.
 
-The SQL test is the strong one: it executes the generated query in a real
-SQL engine (SQLite) and asserts row-for-row integer equality with the
-Python runtime — latent, band, and PD. The COBOL test verifies that the
-emitted program carries the artifact's integers verbatim and that every
-threshold literal round-trips to the exact float64 the runtime compares;
-compiling and running it under GnuCOBOL is the CI job's task.
+The SQL test executes the generated query in a real SQL engine (SQLite) and
+asserts row-for-row integer equality with the Python runtime — latent, band,
+and PD. The COBOL tests verify that the emitted program carries the
+artifact's integers verbatim and that every threshold literal round-trips to
+the exact float64 the runtime compares; the run-parity test then compiles the
+program under GnuCOBOL and asserts the same latent, band and PD equality for
+every calibration mode. It skips where cobc is absent; CI installs it.
 """
 
 import re
@@ -145,32 +146,53 @@ def test_cobol_carries_artifact_integers_verbatim(fitted):
     assert f"(2 * F-LATENT-MICRO + {ratio}) / (2 * {ratio})" in text
     assert artifact["artifact_hash"] in text
 
+    # Calibration table (spec §6): both ends verbatim, every knot a cutoff.
+    f = artifact["calibration"]["f_micro"]
+    pd = artifact["calibration"]["pd_ppm"]
+    assert "PERFORM CALIBRATE-PD" in text
+    assert f"WHEN F-LATENT-MICRO <= {f[0]}\n            MOVE {pd[0]} TO F-PD-PPM" in text
+    for knot in f[1:]:
+        assert f"WHEN F-LATENT-MICRO < {knot}\n" in text
+    assert f"WHEN OTHER\n            MOVE {pd[-1]} TO F-PD-PPM" in text
+
 
 def test_cobol_sanitizes_awkward_feature_names(fitted):
     _, artifact = fitted
     import copy
 
     art = copy.deepcopy(artifact)
-    art["features"]["names"] = ["bills_paid_late!", "bills paid late", "übers2", "x" * 60, "f4"]
+    art["features"]["names"] = ["bills_paid_late!", "bills paid late", "übers2", "x" * 60, "pd_ppm"]
     text = export_cobol(art)
     assert "05 F-BILLS-PAID-LATE " in text
     assert "F-BILLS-PAID-LATE-2" in text  # collision gets a suffix
+    # A feature must never shadow the program's own working storage.
+    assert "05 F-PD-PPM-2 " in text
     for line in text.splitlines():
         for name in re.findall(r"05 (\S+)", line):
             assert len(name) <= 30
 
 
-def test_cobol_run_parity_under_gnucobol(fitted, tmp_path):
+@pytest.mark.parametrize("calibration", ["linear_int", "step", "none"])
+def test_cobol_run_parity_under_gnucobol(fitted, tmp_path, calibration):
     """Compile the driver-harness export with GnuCOBOL, run it, and diff the
-    printed integers against the Python runtime. Skips where cobc is absent;
-    CI installs GnuCOBOL so this runs there."""
+    printed latent, band and PD against the Python runtime, for every
+    calibration mode. Skips where cobc is absent; CI installs GnuCOBOL."""
+    import copy
     import shutil
     import subprocess
 
     if shutil.which("cobc") is None:
         pytest.skip("GnuCOBOL not installed (CI runs this)")
-    X, artifact = fitted
-    rows = [[float(v) for v in row] for row in X[:50]]
+    X, fitted_artifact = fitted
+    artifact = copy.deepcopy(fitted_artifact)
+    if calibration == "none":
+        artifact["calibration"] = None
+    else:
+        artifact["calibration"]["mode"] = calibration
+    # Extreme rows push the raw score past both clamps, so the table's two
+    # ends are exercised as well as its interior segments.
+    extremes = [[8.0] * P, [-8.0] * P, [8.0, -8.0, 8.0, 8.0, 0.0], [-8.0, 8.0, -8.0, -8.0, 0.0]]
+    rows = [[float(v) for v in row] for row in X[:200]] + extremes
 
     src = tmp_path / "harness.cob"
     src.write_text(export_cobol(artifact, driver_rows=rows), encoding="utf-8")
@@ -185,10 +207,11 @@ def test_cobol_run_parity_under_gnucobol(fitted, tmp_path):
     lines = [ln for ln in run.stdout.strip().splitlines() if ln.strip()]
     assert len(lines) == len(rows)
     for row, line in zip(rows, lines):
-        latent_txt, band_txt = line.split()
+        latent_txt, band_txt, pd_txt = line.split()
         ref = decide(artifact, row, explain=False)
         assert int(latent_txt.replace("+", "")) == ref["latent_int"]
         assert band_txt.strip() == ref["band"]
+        assert int(pd_txt.replace("+", "")) == ref["pd_ppm"]
 
 
 def test_sql_1_band_export(fitted):
