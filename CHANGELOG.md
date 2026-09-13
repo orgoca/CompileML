@@ -7,6 +7,22 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-09-13
+
+Fixes to what the fair-lending audit reports, and answers to an independent
+evaluation. No change to the runtime, to scoring, or to any artifact a build
+produces; the artifact schema is unchanged.
+
+The fairness audit's §6 residual is now exactly zero rather than float noise
+whose sign varied by machine, and §11 no longer claims a model ignores a
+protected attribute it was simply not told about. The rest answers
+[@deburky](https://github.com/deburky)'s evaluation of 0.4.3 on fraud data:
+five usability observations addressed, and a README section recording what
+that evaluation established and what it did not cover.
+
+Additive only: `counterfactual` results gain a `status` key, and the
+single-band builders gain a warning.
+
 ### Changed
 - README: the roadmap still listed per-tree attribution and the fairness
   audit as future work, both shipped in 0.5.0. It adds an *Independent
