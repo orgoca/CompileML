@@ -184,6 +184,11 @@ def test_export_cobol_explain_and_documented_refusal(env, tmp_path, capsys):
     out = tmp_path / "explain.cob"
     assert main(["export", artifact_path, "--target", "cobol", "--explain", "--out", str(out)]) == 0
     assert "PERFORM EXPLAIN-ONE" in out.read_text(encoding="utf-8")
+    sql_out = tmp_path / "explain.sql"
+    assert (
+        main(["export", artifact_path, "--target", "sql", "--explain", "--out", str(sql_out)]) == 0
+    )
+    assert "reason_neg_1_code" in sql_out.read_text(encoding="utf-8")
 
     X = np.loadtxt(csv_path, delimiter=",", skiprows=1)[:, :P]
     teacher = 1.0 / (1.0 + np.exp(-(X[:, 0] - 0.6 * X[:, 1])))
@@ -200,5 +205,6 @@ def test_export_cobol_explain_and_documented_refusal(env, tmp_path, capsys):
     deep_path = tmp / "deep.json"
     save_artifact(art, deep_path)
     capsys.readouterr()
-    assert main(["export", str(deep_path), "--target", "cobol", "--explain"]) == 2
-    assert "EXPLAIN_NOT_EXACT" in capsys.readouterr().out
+    for target in ("cobol", "sql"):
+        assert main(["export", str(deep_path), "--target", target, "--explain"]) == 2
+        assert "EXPLAIN_NOT_EXACT" in capsys.readouterr().out

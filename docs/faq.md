@@ -88,9 +88,9 @@ about *deployment*, not correctness. CompileML's explanation is computed on
 the deployed object itself (not the pre-compilation model), in integer units
 that re-sum to the decision, by a runtime with no ML dependencies. The
 explanation is part of the decision record, under the artifact's hash, rather
-than a separate analysis run that must be trusted to match. (The SQL and COBOL
-exports do not emit reason codes yet; per-tree attribution has made that
-tractable, and [#14](https://github.com/orgoca/CompileML/issues/14) tracks it.)
+than a separate analysis run that must be trusted to match. With
+`explain=True`, the SQL and COBOL exports carry the same reason codes and
+integer impacts into the warehouse and onto the mainframe.
 
 ## Why not PMML, ONNX, or m2cgen?
 

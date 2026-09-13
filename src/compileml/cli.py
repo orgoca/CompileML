@@ -122,9 +122,19 @@ def cmd_export(args) -> int:
             print(f"FAIL {exc}")
             return 2
     else:
-        from compileml.export import export_sql
+        from compileml.export import ExportError, export_sql
 
-        text = export_sql(artifact, table=args.table, dialect=args.dialect)
+        try:
+            text = export_sql(
+                artifact,
+                table=args.table,
+                dialect=args.dialect,
+                explain=args.explain,
+                top_k=args.top_k,
+            )
+        except ExportError as exc:
+            print(f"FAIL {exc}")
+            return 2
     if args.out in (None, "-"):
         print(text)
     else:
@@ -254,9 +264,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--explain",
         action="store_true",
-        help="COBOL: also emit reason codes and impacts (depth <= 2 artifacts)",
+        help="also emit reason codes and impacts (depth <= 2 artifacts)",
     )
-    p.add_argument("--top-k", type=int, default=None, help="COBOL: reasons per direction")
+    p.add_argument("--top-k", type=int, default=None, help="reasons per direction")
     p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("scorecard", help="collapse a depth<=2 artifact into an exact scorecard")

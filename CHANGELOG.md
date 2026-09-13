@@ -33,6 +33,24 @@ inside each artifact (`schema_version`).
   GnuCOBOL parity covers fallback codes, a dictionary with an escaped quote and
   a suppressed feature, and an artifact built to force ties in both the
   largest-remainder rounding and the reason ranking.
+- The SQL export emits reason codes and integer impacts with `explain=True`
+  (`compileml export --target sql --explain`)
+  ([#65](https://github.com/orgoca/CompileML/issues/65)). Each row gains
+  `reason_neg_<s>_code` / `_impact` and `reason_pos_<s>_code` / `_impact`,
+  `NULL` where a slot is empty, matching `decide(..., explain=True)` exactly and
+  in order. One row out per row in and no row key: a feature's rank within its
+  row is counted with `CASE` arithmetic, not window functions.
+
+  The working CTEs are `MATERIALIZED`. Inlined, SQLite re-derived every
+  reference and took 492 s for 50 rows of a 23-feature, 30-tree artifact;
+  materialized, 0.18 s. That sets the engine floor for `explain=True` —
+  SQLite 3.35+, PostgreSQL 12+, DuckDB — while the score-only query stays as
+  portable as before and byte-identical to 0.6.0's. At 120 trees and 1,000
+  rows the query is 0.56 MB and 0.40 s at 23 features, 2.21 MB and 1.54 s at
+  100.
+
+  The COBOL and SQL exporters now share one module for exactness, reason
+  codes and the baseline; the generated COBOL is byte-identical to before.
 - FAQ: *Why not PMML, ONNX, or m2cgen?*
   ([#17](https://github.com/orgoca/CompileML/issues/17)) — where each is the
   better choice, what CompileML trades for its guarantee (a distilled model,

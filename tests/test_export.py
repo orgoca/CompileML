@@ -380,3 +380,67 @@ def test_cobol_reason_parity_under_gnucobol(fitted, tmp_path, case, top_k):
             [(r["code"], r["impact_int"]) for r in ref["reasons_negative"]],
             [(r["code"], r["impact_int"]) for r in ref["reasons_positive"]],
         )
+
+
+# --------------------------------------------------------- SQL reason codes
+def test_sql_explain_is_opt_in_and_refuses_inexact_attribution(fitted):
+    import copy
+
+    _, artifact = fitted
+    assert "cml_" not in export_sql(artifact)
+    text = export_sql(artifact, explain=True)
+    assert "AS MATERIALIZED" in text and "reason_neg_1_code" in text
+
+    inexact = copy.deepcopy(artifact)
+    inexact["runtime"]["exact_attribution"] = False
+    with pytest.raises(ExportError) as err:
+        export_sql(inexact, explain=True)
+    assert err.value.code == "EXPLAIN_NOT_EXACT"
+
+
+@pytest.mark.parametrize(
+    "case, top_k",
+    [
+        ("fallback codes", None),
+        ("dictionary", 3),
+        ("non-ASCII code", None),
+        ("symmetric ties", 1),
+        ("symmetric ties", 2),
+    ],
+)
+def test_sql_reason_parity_in_sqlite(fitted, case, top_k):
+    """Execute the explain query in SQLite and require the reason codes and
+    integer impacts decide() produces, in order, slot by slot, on every row."""
+    import copy
+
+    if sqlite3.sqlite_version_info < (3, 35):
+        pytest.skip("explain=True needs MATERIALIZED CTEs (SQLite 3.35+)")
+    X, fitted_artifact = fitted
+    rows = [[float(v) for v in row] for row in X[:200]]
+    if case == "fallback codes":
+        artifact = fitted_artifact
+    elif case == "dictionary":
+        artifact = _with_dictionary(fitted_artifact)
+    elif case == "non-ASCII code":  # fine in SQL; only COBOL refuses it
+        artifact = copy.deepcopy(fitted_artifact)
+        artifact["reasons"] = {"f3": {"code": "RETRASO_AÑO"}}
+    else:
+        artifact = _symmetric(fitted_artifact)
+        rows = [[1.0, 1.0, 1.0, 1.0, 0.0], [1.0, 1.0, -1.0, -1.0, 0.0], [-1.0] * P, [0.0] * P]
+
+    con = sqlite3.connect(":memory:")
+    con.execute(f"CREATE TABLE features ({', '.join(f'{n} REAL' for n in FEATURES)})")
+    con.executemany(f"INSERT INTO features VALUES ({', '.join('?' * P)})", rows)
+    cur = con.execute(export_sql(artifact, dialect="sqlite", explain=True, top_k=top_k))
+    names = [c[0] for c in cur.description]
+    k = top_k if top_k is not None else artifact["runtime"]["top_k"]
+    for row, values in zip(rows, cur.fetchall()):
+        got = dict(zip(names, values))
+        ref = decide(artifact, row, explain=True, top_k=k)
+        for direction, key in (("neg", "reasons_negative"), ("pos", "reasons_positive")):
+            want = [(r["code"], r["impact_int"]) for r in ref[key]]
+            want += [(None, None)] * (k - len(want))
+            assert [
+                (got[f"reason_{direction}_{s}_code"], got[f"reason_{direction}_{s}_impact"])
+                for s in range(1, k + 1)
+            ] == want

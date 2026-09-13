@@ -33,32 +33,15 @@ from __future__ import annotations
 
 import re
 
-from compileml.runtime.decide import _apply_precision
-
-LEAF = -2
-
-# A depth <= 2 tree splits on at most three features; that bounds the subset
-# walks per tree at eight and is what makes exact attribution exact.
-MAX_TREE_FEATURES = 3
-
-
-class ExportError(ValueError):
-    """An artifact the exporter will not render, with a stable ``code``.
-
-    Codes (documented in ``docs/howto/deploy.md``):
-
-    - ``EXPLAIN_NOT_EXACT`` — ``explain=True`` on an artifact whose attribution
-      is not exact (whitebox depth > 2). Reason codes would not reconcile to
-      the score, so none are emitted.
-    - ``REASON_CODE_NOT_ASCII`` — a reason code that is not printable ASCII.
-      Mainframe character sets would not carry it unchanged; give the feature
-      an ASCII ``code`` in the artifact's reason dictionary.
-    """
-
-    def __init__(self, code: str, message: str):
-        super().__init__(f"[{code}] {message}")
-        self.code = code
-
+from compileml.export._explain import (
+    LEAF,
+    ExportError,
+    explain_baseline,
+    reason_codes,
+    require_exact,
+    resolve_top_k,
+    split_features,
+)
 
 # Working-storage names the program declares itself. A feature whose
 # sanitized name would collide with one of these gets a suffix instead.
@@ -114,10 +97,6 @@ def _emit_tree(tree: dict, names: list[str], indent: int) -> list[str]:
     return lines
 
 
-def _split_features(tree: dict) -> list[int]:
-    return sorted({f for f in tree["feature"] if f != LEAF})
-
-
 def _emit_walk(
     tree: dict, names: list[str], baselined: dict[int, float], target: str, indent: int
 ) -> list[str]:
@@ -147,7 +126,7 @@ def _emit_tree_attribution(
     index: int, tree: dict, names: list[str], baseline: list[float]
 ) -> list[str]:
     """Spec §7 for one tree: its subset walks, main effects and pair interactions."""
-    feats = _split_features(tree)
+    feats = split_features(tree)
     k = len(feats)
     lines = [f"ATTR-TREE-{index:04d}."]
     for mask in range(1 << k):
@@ -177,32 +156,18 @@ def _cobol_string(text: str) -> str:
 
 
 def _reason_codes(artifact: dict) -> tuple[list[str], list[str], list[int]]:
-    """Adverse and favorable codes per feature, and whether each may be cited (spec §7.6)."""
+    """The shared reason-code table, with COBOL's printable-ASCII rule applied."""
+    negative, positive, eligible = reason_codes(artifact)
     names = [str(n) for n in artifact["features"]["names"]]
-    dictionary = artifact.get("reasons") or {}
-    negative, positive, eligible = [], [], []
-    for name in names:
-        entry = dictionary.get(name) or {}
-        if entry.get("suppress"):
-            negative.append("")
-            positive.append("")
-            eligible.append(0)
-            continue
-        codes = (
-            str(entry.get("code", f"NEGATIVE_{name}")),
-            str(entry.get("code", f"POSITIVE_{name}")),
-        )
-        for code in codes:
+    for name, neg, pos, ok in zip(names, negative, positive, eligible):
+        for code in (neg, pos) if ok else ():
             if not (code.isascii() and code.isprintable()):
                 raise ExportError(
                     "REASON_CODE_NOT_ASCII",
                     f"reason code {code!r} for feature {name!r} is not printable ASCII; "
                     "give the feature an ASCII 'code' in the reason dictionary",
                 )
-        negative.append(codes[0])
-        positive.append(codes[1])
-        eligible.append(1)
-    return negative, positive, eligible
+    return negative, positive, [int(e) for e in eligible]
 
 
 def _emit_value_table(name: str, pic: str, values: list[str]) -> list[str]:
@@ -220,7 +185,7 @@ def _emit_explain(artifact: dict, n: int, ratio: int, top_k: int) -> list[str]:
     ratio2 = 2 * ratio
     lines = ["EXPLAIN-ONE.", "    INITIALIZE X-FEATURE-STATE", "    INITIALIZE REASONS"]
     for i, tree in enumerate(artifact["model"]["trees"]):
-        if _split_features(tree):
+        if split_features(tree):
             lines.append(f"    PERFORM ATTR-TREE-{i + 1:04d}")
     lines += [
         "    MOVE 0 TO X-SUMC2",
@@ -396,23 +361,11 @@ def export_cobol(
     n_features = len(feature_names)
 
     if explain:
-        exact = artifact.get("runtime", {}).get("exact_attribution") is True
-        if not exact or any(len(_split_features(t)) > MAX_TREE_FEATURES for t in model["trees"]):
-            raise ExportError(
-                "EXPLAIN_NOT_EXACT",
-                "this artifact's attribution is not exact (whitebox depth > 2), so "
-                "reason codes would not reconcile to the score; compile at depth <= 2 "
-                "or export without explain",
-            )
-        k = int(top_k if top_k is not None else artifact.get("runtime", {}).get("top_k", 5))
-        if k < 1:
-            raise ValueError("top_k must be at least 1 when explain=True")
+        require_exact(artifact)
+        k = resolve_top_k(artifact, top_k)
         neg_codes, pos_codes, eligible = _reason_codes(artifact)
         code_width = max([len(c) for c in neg_codes + pos_codes] + [1])
-        baseline = _apply_precision(
-            [float(b) for b in artifact["features"]["baseline"]],
-            model.get("input_precision", "float64"),
-        )
+        baseline = explain_baseline(artifact)
 
     out: list[str] = []
     push = out.append
@@ -556,7 +509,7 @@ def export_cobol(
         push("")
         out.extend(_emit_explain(artifact, n_features, ratio, k))
         for i, tree in enumerate(model["trees"]):
-            if _split_features(tree):
+            if split_features(tree):
                 out.extend(_emit_tree_attribution(i + 1, tree, cobol_names, baseline))
                 push("")
     return "\n".join(out) + "\n"
