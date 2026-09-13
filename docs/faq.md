@@ -86,10 +86,33 @@ alongside capacity, not on its own — the two are easy to confuse.
 TreeSHAP is exact for trees and a fine analysis tool — the differences are
 about *deployment*, not correctness. CompileML's explanation is computed on
 the deployed object itself (not the pre-compilation model), in integer units
-that re-sum to the decision, by a runtime with no ML dependencies, and it
-travels into the SQL and COBOL exports. The explanation is part of the
-decision record, under the artifact's hash, rather than a separate analysis
-run that must be trusted to match.
+that re-sum to the decision, by a runtime with no ML dependencies. The
+explanation is part of the decision record, under the artifact's hash, rather
+than a separate analysis run that must be trusted to match. (The SQL and COBOL
+exports do not emit reason codes yet; per-tree attribution has made that
+tractable, and [#14](https://github.com/orgoca/CompileML/issues/14) tracks it.)
+
+## Why not PMML, ONNX, or m2cgen?
+
+PMML, ONNX and m2cgen solve related but different problems, and each is the
+better choice when its problem is yours. PMML is mature, widely understood by
+validators, and its Scorecard model already carries points and reason codes.
+ONNX is the broad inference standard, and the natural choice for a model such
+as a neural network you do not want to distill. m2cgen turns a trained model
+into readable code in many languages, including ones CompileML does not
+export to.
+
+All three run the model you trained. CompileML runs a distilled one — a
+depth-2 whitebox that gives up some discrimination, about 2% of Gini on the
+committed benchmark — in exchange for a different guarantee. It targets the
+**decision**, not just the scorer: integer arithmetic fixed in the artifact
+rather than left to each evaluator's floating point, so the Python runtime,
+SQL and COBOL agree to the integer; calibration, bands and reason codes in one
+hashed document; and attributions for the whole tree ensemble that add back to
+the score exactly. If you need to run a model elsewhere, use one of those
+tools. If you need the deployed decision itself to be deterministic and
+auditable, and can afford the distillation, that is the problem CompileML is
+designed to solve.
 
 ## Can I compile my XGBoost classifier directly?
 
