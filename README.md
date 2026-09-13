@@ -395,6 +395,7 @@ src/compileml/runtime/
 * [Deploying to Python, SQL, and COBOL](docs/howto/deploy.md)
 * [Validation framework](docs/howto/validate.md)
 * [Fair-lending audit](docs/howto/fairness.md)
+* [Monitoring a deployed artifact](docs/howto/monitor.md)
 * [Visualization](docs/howto/visualize.md)
 * [Executable notebooks](examples/)
 

@@ -14,9 +14,10 @@ rather than a ranking that stands in for them.
 from __future__ import annotations
 
 from collections import Counter
-from fractions import Fraction
 
 import numpy as np
+
+from compileml._decomposition import mean_gap_by_feature, require_exact_contributions
 
 # Approval convention: a higher latent means higher risk, so an applicant is
 # approved when their score falls *below* the cutoff.
@@ -243,65 +244,22 @@ def attribution_disparity(decisions, protected, feature_names, *, labels=None) -
 
     Requires ``decide(..., include_contributions=True)``.
     """
-    if "contributions" not in decisions[0]:
-        raise ValueError(
-            "attribution_disparity needs per-feature contributions; call "
-            "decide(artifact, row, include_contributions=True). The default "
-            "payload carries 'attribution' as a method label only."
-        )
-    residual = max(abs(int(d["attribution_residual_half_micro"])) for d in decisions)
-    if residual != 0:
-        raise ValueError(
-            f"attribution residual is {residual}, not zero: this artifact's "
-            "attribution is not exact (whitebox depth > 2), so a decomposition "
-            "would not sum to the gap. Compile at depth <= 2, or read the "
-            "outcome-level sections only."
-        )
-
-    g = np.asarray(protected).reshape(-1)
-    p = len(feature_names)
-    contrib = np.zeros((len(decisions), p), dtype=np.int64)
-    for i, d in enumerate(decisions):
-        for c in d["contributions"]:
-            contrib[i, c["index"]] = int(c["impact_half_micro"])
-    movement = np.array(
-        [2 * (int(d["raw_micro"]) - int(d["baseline_micro"])) for d in decisions],
-        dtype=np.int64,
+    require_exact_contributions(
+        decisions,
+        "attribution_disparity",
+        advice="Compile at depth <= 2, or read the outcome-level sections only.",
     )
-
+    g = np.asarray(protected).reshape(-1)
     pairs = _groups(g, labels)
     if len(pairs) != 2:
         raise ValueError("attribution_disparity compares exactly two groups")
     (va, na), (vb, nb) = pairs
-    ma, mb = g == va, g == vb
-
-    n_a, n_b = int(ma.sum()), int(mb.sum())
-
-    def mean_gap(sum_a: int, sum_b: int) -> Fraction:
-        return Fraction(sum_a, n_a) - Fraction(sum_b, n_b)
-
-    # Sums stay integers; only the division is rational. Nothing here touches
-    # a float until the values are reported.
-    sums_a = [int(v) for v in contrib[ma].sum(0)]
-    sums_b = [int(v) for v in contrib[mb].sum(0)]
-    gap = mean_gap(int(movement[ma].sum()), int(movement[mb].sum()))
-    per = [mean_gap(sums_a[j], sums_b[j]) for j in range(p)]
-    total = sum(per, Fraction(0))
-
-    rows = [
-        {
-            "feature": str(feature_names[j]),
-            "gap_half_micro": float(per[j]),
-            "share_pct": float(100 * per[j] / total) if total else float("nan"),
-        }
-        for j in range(p)
-    ]
+    groups = g.tolist()
+    side_a = [d for d, v in zip(decisions, groups) if v == va]
+    side_b = [d for d, v in zip(decisions, groups) if v == vb]
     return {
         "comparison": f"{na} minus {nb}",
-        "mean_gap_half_micro": float(gap),
-        "sum_of_feature_gaps": float(total),
-        "residual": float(gap - total),
-        "by_feature": sorted(rows, key=lambda r: -abs(r["gap_half_micro"])),
+        **mean_gap_by_feature(side_a, side_b, feature_names),
     }
 
 

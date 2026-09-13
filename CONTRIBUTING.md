@@ -17,7 +17,7 @@ infrastructure and something a risk function could actually adopt:
 
 | | |
 |---|---|
-| [#9](https://github.com/orgoca/CompileML/issues/9) | **Stability monitoring.** Not another PSI implementation — the issue is explicit about what *not* to rebuild. The open work is decomposing score drift across features exactly, which the reconciliation identity makes possible and external tooling can only approximate. |
+| [#16](https://github.com/orgoca/CompileML/issues/16) | **Champion/challenger.** Replacing a model means answering who moves, by how much, and why. Both artifacts are hashed and exactly attributed, so the comparison can be exact and reproducible — the same decomposition that powers fair-lending and drift reports, applied across two artifacts instead of two populations. |
 | [#14](https://github.com/orgoca/CompileML/issues/14) | **Calibrated PD and reason codes from COBOL.** The mainframe export emits score and band only, so the decision cannot yet produce its adverse-action reasons where it actually runs. Per-tree attribution has made the computation bounded; the GnuCOBOL parity harness is already in CI. |
 
 Smaller entry points: [#17](https://github.com/orgoca/CompileML/issues/17)
