@@ -144,6 +144,8 @@ holds bit-for-bit on every row. `score_from_scorecard()` re-derives any producti
 
 Hand the CSV to a validator and they can reproduce production scores in a spreadsheet. Above depth 2 no clean scorecard exists, and the tool raises instead of approximating — the same boundary as exact attribution, for the same reason.
 
+Expect a depth-2 scorecard to be mostly interaction grids. A tree whose two splits use different features contributes a grid rather than a main effect, and boosting seldom spends both splits on one feature: the fairness notebook's 40-tree model on the 23-feature UCI panel compiles to 55 grids and no main effects at all. It is still exact, but it is not the one-table-per-feature card many validation teams expect. If yours does, compile at `max_depth=1` and measure the fidelity that costs with `sweep_whitebox`.
+
 ## What the artifact guarantees
 
 Given the same artifact and the same input values, CompileML produces the same governed integer outputs across supported runtimes.
@@ -323,6 +325,25 @@ These checks run against the compiled artifact through the same runtime used for
 
 The command exits with `0` or `1`, so it can gate deployment in CI.
 
+## Independent evaluation
+
+[@deburky](https://github.com/deburky) evaluated CompileML 0.4.3 on the AWS Fraud Detector sample data with a CatBoost teacher — a different domain, teacher and dataset from anything in this repository — and published the code and notes in [deburky/compileml-fraud-scoring](https://github.com/deburky/compileml-fraud-scoring).
+
+On that data:
+
+* Gini retention of 98.5% and 96.9% at depth 2, on two datasets;
+* all ten validation checks passing on both artifacts;
+* the SQL export, executed in SQLite, matching the Python runtime on every holdout row;
+* scorecard re-sums matching the production score on every row;
+* the runtime scoring with no NumPy, pandas, scikit-learn or CatBoost loaded, including from a SageMaker serving image built without them;
+* recalibration after a fourfold drop in base rate leaving the model and band edges byte-identical, with zero band churn.
+
+It found two bugs, both fixed in 0.5.0: invalid SQL for a single-band artifact ([#40](https://github.com/orgoca/CompileML/issues/40), fixed by [@tote10](https://github.com/tote10)) and band builders emitting edges the build then rejected on low base rates ([#41](https://github.com/orgoca/CompileML/issues/41)).
+
+Its notes also recorded five usability observations, all addressed in 0.5.2: a latent-range warning that blamed margin-space models even for `train_whitebox` output; no pointer onward when certified banding finds a single band; a documented recalibration metadata key that did not match the one written; an undocumented macOS dependency of the XGBoost and LightGBM extras; and nothing warning that a depth-2 scorecard is mostly interaction grids.
+
+It did not exercise the COBOL export (no compiler was installed), determinism across operating systems (CI checks that separately), or anything released after 0.4.3.
+
 ## Citing
 
 Every release is archived on Zenodo. Cite the concept DOI — it always
@@ -346,6 +367,8 @@ Optional teacher integrations:
 pip install compileml[xgboost]
 pip install compileml[lightgbm]
 ```
+
+On macOS both libraries load the OpenMP runtime. If importing either fails while loading its shared library, install it with `brew install libomp`. That is a requirement of XGBoost and LightGBM, not of CompileML, whose runtime needs neither.
 
 Visualization dependencies:
 
@@ -371,18 +394,20 @@ src/compileml/runtime/
 * [Recalibration without band churn](docs/howto/recalibrate.md)
 * [Deploying to Python, SQL, and COBOL](docs/howto/deploy.md)
 * [Validation framework](docs/howto/validate.md)
+* [Fair-lending audit](docs/howto/fairness.md)
 * [Visualization](docs/howto/visualize.md)
 * [Executable notebooks](examples/)
 
 ## Roadmap
 
+Shipped in 0.5: exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fair-lending audit in `compileml.fairness`.
+
 The current priorities are:
 
-* compute exact attribution at leaf time — making explain-everything p-independent, cheap for full-book batch, and enabling reason-code emission in the SQL export;
+* decompose score drift exactly, rather than reimplement PSI ([#9](https://github.com/orgoca/CompileML/issues/9));
+* complete calibrated-PD output in COBOL, then emit reason codes from the COBOL and SQL exports, which per-tree attribution has made tractable ([#14](https://github.com/orgoca/CompileML/issues/14));
 * add Java and C exporters;
-* complete calibrated-PD output in COBOL;
-* add an optional NumPy batch scorer;
-* add a fairness-audit module.
+* add an optional NumPy batch scorer.
 
 ## License
 

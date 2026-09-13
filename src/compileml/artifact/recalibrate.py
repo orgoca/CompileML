@@ -50,8 +50,8 @@ def recalibrate_artifact(
 
     Returns:
         A new artifact dict with updated ``calibration``, refreshed band
-        bad-rate metadata, ``metadata.recalibrated_from`` set to the old
-        hash, and a new ``artifact_hash``.
+        bad-rate metadata, ``metadata.recalibration.recalibrated_from`` set
+        to the old hash, and a new ``artifact_hash``.
     """
     F = np.clip(np.asarray(latent, dtype=float).reshape(-1), 0.0, 1.0)
     y_arr = np.asarray(y, dtype=float).reshape(-1)

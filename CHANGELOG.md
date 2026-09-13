@@ -7,6 +7,19 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Changed
+- README: the roadmap still listed per-tree attribution and the fairness
+  audit as future work, both shipped in 0.5.0. It adds an *Independent
+  evaluation* section summarising
+  [@deburky](https://github.com/deburky)'s test of 0.4.3 on fraud data,
+  including what it did not cover, and links the fairness guide.
+- The 0.5.0 entry was missing the single-band SQL fix (#40, #42); added.
+- Docs set the depth-2 expectation: a depth-2 scorecard is mostly pairwise
+  interaction grids, not one table per feature, and `max_depth=1` is the
+  classic form. The fairness guide's grid count now matches its notebook
+  (55, not 47).
+- README notes that the XGBoost and LightGBM extras need `libomp` on macOS.
+
 ### Fixed
 - `attribution_disparity` (§6) took group means in floats, so an exact
   decomposition reported a residual of about ±1e-11 whose sign depended on
@@ -32,6 +45,25 @@ inside each artifact (`schema_version`).
 
 - The fairness guide's §6 example was transcribed from a different run than
   the notebook it links to. It now shows the notebook's output.
+
+- `build_artifact`'s out-of-range latent warning always said "distill
+  margin-space models first (train_whitebox)" — circular advice for a model
+  that came from `train_whitebox`. It now reads the range and names the
+  likely cause: slight overshoot from a squared-error whitebox on a skewed
+  target, which clamping handles and leaves the artifact valid, or a
+  margin-scale spread, which needs distilling. The artifact is unchanged.
+- `semantic_bands` and `governance_bands` returned a single certified band
+  silently, which then dead-ended the quickstart flow. They now warn and
+  point at `monotone_quantile_bands` and `min_band_size`.
+  `flags.no_discrete_classes` remains the machine-readable signal; the hint
+  stays out of metadata because metadata is hashed into the artifact.
+- `recalibrate_artifact`'s docstring named `metadata.recalibrated_from`; the
+  key it writes is `metadata.recalibration.recalibrated_from`. Documented as
+  written rather than renamed, since renaming would break readers of existing
+  artifacts.
+
+  These five were reported by [@deburky](https://github.com/deburky) in notes
+  on 0.4.3.
 
 ## [0.5.1] - 2026-09-12
 
@@ -148,6 +180,14 @@ audit's numbers were written once rather than documented and revised.
   silently, and nothing here certifies compliance with anything.
 
 ### Fixed
+- `export_sql` emitted `CASE ELSE 'G01' END`, which is not valid SQL, for a
+  single-band artifact; it now emits the label directly
+  ([#40](https://github.com/orgoca/CompileML/issues/40), reported by
+  [@deburky](https://github.com/deburky), fixed by
+  [@tote10](https://github.com/tote10) in
+  [#42](https://github.com/orgoca/CompileML/pull/42) — the project's first
+  outside contribution). *This entry was missing when 0.5.0 was released and
+  was added afterwards; the fix itself shipped in 0.5.0.*
 - Quantile band builders no longer emit edges that `build_artifact` refuses
   ([#41](https://github.com/orgoca/CompileML/issues/41), reported and
   diagnosed by [@deburky](https://github.com/deburky) against real fraud

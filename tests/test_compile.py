@@ -296,3 +296,44 @@ def test_threshold_decimals_quantization(data, whitebox):
 
     report = validate_artifact(art, X_val=X[:300], model=whitebox)
     assert report["checks"]["3_fidelity"]["pass"]
+
+
+# ------------------------------------------- out-of-range latents name a cause
+def _range_warnings(target):
+    rng = np.random.default_rng(3)
+    X = rng.standard_normal((3000, 4))
+    y_like = target(X)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model, _ = train_whitebox(X, y_like, n_estimators=30, max_depth=2, random_state=0)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        build_artifact(
+            model,
+            [f"f{i}" for i in range(4)],
+            np.median(X, axis=0),
+            np.linspace(0.0, 1.0, 5),
+            X_sample=X[:500],
+        )
+    return [str(w.message) for w in caught if "outside [0, 1]" in str(w.message)]
+
+
+def test_skewed_probability_overshoot_is_not_blamed_on_margins():
+    """A train_whitebox model must not be told to distill with train_whitebox.
+
+    Probabilities with a large mass at exactly zero behind a diagonal boundary:
+    axis-aligned splits approximate the diagonal in steps and overshoot the
+    floor, the pattern reported on a 5% fraud target (a fifth of latents just
+    below zero).
+    """
+    messages = _range_warnings(lambda X: np.clip(0.10 * X[:, 0] + 0.10 * X[:, 1], 0.0, 1.0))
+    assert len(messages) == 1
+    assert "overshoot" in messages[0]
+    assert "the artifact is valid" in messages[0]
+
+
+def test_margin_scale_output_is_identified_as_margins():
+    """Log-odds targets spread far past [0, 1]; that one does need distilling."""
+    messages = _range_warnings(lambda X: 2.0 * X[:, 0] - 3.5)
+    assert len(messages) == 1
+    assert "looks like margin" in messages[0]

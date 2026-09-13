@@ -1,5 +1,7 @@
 """Band builder tests: quantile, monotone-quantile, and search-and-certify."""
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -254,3 +256,31 @@ def test_builders_are_deterministic():
     )
     assert a.edges == b.edges
     assert a.metadata == b.metadata  # no timestamps: identical inputs, identical spec
+
+
+# ------------------------------------------- one certified band points onward
+def test_semantic_single_band_warns_with_a_way_forward():
+    rng = np.random.default_rng(17)
+    noise_y = rng.integers(0, 2, len(PLATEAU_LATENT))
+    with pytest.warns(UserWarning, match="monotone_quantile_bands"):
+        spec = semantic_bands(
+            PLATEAU_LATENT, noise_y, max_bands=10, min_band_size=400, n_boot_cert=40
+        )
+    assert spec.n_bands == 1
+
+
+def test_governance_single_band_warns_with_a_way_forward():
+    rng = np.random.default_rng(5)
+    latent = rng.random(5000)
+    noise_y = rng.integers(0, 2, 5000)
+    with pytest.warns(UserWarning, match="certified only one band"):
+        spec = governance_bands(latent, noise_y, max_bands=10, min_band_size=2000)
+    assert spec.n_bands == 1
+
+
+def test_asking_for_one_band_does_not_warn():
+    rng = np.random.default_rng(17)
+    noise_y = rng.integers(0, 2, len(PLATEAU_LATENT))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        semantic_bands(PLATEAU_LATENT, noise_y, max_bands=1, min_band_size=400, n_boot_cert=40)

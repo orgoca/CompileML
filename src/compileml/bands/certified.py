@@ -17,6 +17,7 @@ the certification travels inside the hashed artifact.
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -33,6 +34,26 @@ def _next_down(x: float) -> float:
 
 def _next_up(x: float) -> float:
     return float(np.nextafter(float(x), np.inf))
+
+
+def _warn_one_band(method: str, n: int, min_band_size: int, max_bands: int) -> None:
+    """A single certified band is honest, and a dead end. Say where to go.
+
+    ``flags.no_discrete_classes`` already records it for code; this is for the
+    person reading the output. The hint stays out of the metadata because
+    metadata is carried into the hashed artifact.
+    """
+    if int(max_bands) <= 1:
+        return  # one band was asked for
+    warnings.warn(
+        f"{method} certified only one band on {n:,} rows (min_band_size="
+        f"{min_band_size}): at these settings the sample shows no statistically "
+        "separable risk classes. A one-band ladder compiles but cannot rank "
+        "decisions. If the score does rank — sweep_bands will show it — "
+        "monotone_quantile_bands(latent, y, n_bands=K) builds a fixed-K ladder "
+        "instead; or lower min_band_size if the sample can support it.",
+        stacklevel=3,
+    )
 
 
 def _labels(n: int) -> list[str]:
@@ -283,6 +304,7 @@ def semantic_bands(
         raise RuntimeError("merge search did not converge")
 
     if len(stats) < 2:
+        _warn_one_band("semantic_bands", n, min_band_size, max_bands)
         s = _compute(Fs, ys, 0, n, alpha, cache)
         return BandSpec(
             edges=[_next_down(Fs[0]), _next_up(Fs[-1])],
@@ -465,6 +487,8 @@ def governance_bands(
         merged = _gov_compute(Fs, ys, stats[m].L, stats[m + 1].R, cache)
         stats = stats[:m] + [merged] + stats[m + 2 :]
 
+    if len(stats) < 2:
+        _warn_one_band("governance_bands", n, min_band_size, max_bands)
     adj_p = [_gov_ttest_p(ys, stats[i], stats[i + 1]) for i in range(len(stats) - 1)]
     adj_delta = [float(stats[i + 1].pd - stats[i].pd) for i in range(len(stats) - 1)]
 
