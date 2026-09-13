@@ -14,6 +14,7 @@ rather than a ranking that stands in for them.
 from __future__ import annotations
 
 from collections import Counter
+from fractions import Fraction
 
 import numpy as np
 
@@ -232,6 +233,14 @@ def attribution_disparity(decisions, protected, feature_names, *, labels=None) -
     That statement is unavailable from a decomposition whose parts do not sum
     to the whole.
 
+    The group means are taken as exact rationals over integer sums, not as
+    floats. Float means of the same integers round differently depending on
+    how the sums happen to accumulate, which turned an exact identity into a
+    residual of ±1e-11 whose sign varied between machines. Here the residual
+    is ``0.0`` because it is zero, and the reported floats are conversions of
+    equal rationals, so ``mean_gap_half_micro == sum_of_feature_gaps`` holds
+    with ``==``.
+
     Requires ``decide(..., include_contributions=True)``.
     """
     if "contributions" not in decisions[0]:
@@ -266,9 +275,18 @@ def attribution_disparity(decisions, protected, feature_names, *, labels=None) -
     (va, na), (vb, nb) = pairs
     ma, mb = g == va, g == vb
 
-    gap = float(movement[ma].mean() - movement[mb].mean())
-    per = contrib[ma].mean(0) - contrib[mb].mean(0)
-    total = float(per.sum())
+    n_a, n_b = int(ma.sum()), int(mb.sum())
+
+    def mean_gap(sum_a: int, sum_b: int) -> Fraction:
+        return Fraction(sum_a, n_a) - Fraction(sum_b, n_b)
+
+    # Sums stay integers; only the division is rational. Nothing here touches
+    # a float until the values are reported.
+    sums_a = [int(v) for v in contrib[ma].sum(0)]
+    sums_b = [int(v) for v in contrib[mb].sum(0)]
+    gap = mean_gap(int(movement[ma].sum()), int(movement[mb].sum()))
+    per = [mean_gap(sums_a[j], sums_b[j]) for j in range(p)]
+    total = sum(per, Fraction(0))
 
     rows = [
         {
@@ -280,8 +298,8 @@ def attribution_disparity(decisions, protected, feature_names, *, labels=None) -
     ]
     return {
         "comparison": f"{na} minus {nb}",
-        "mean_gap_half_micro": gap,
-        "sum_of_feature_gaps": total,
+        "mean_gap_half_micro": float(gap),
+        "sum_of_feature_gaps": float(total),
         "residual": float(gap - total),
         "by_feature": sorted(rows, key=lambda r: -abs(r["gap_half_micro"])),
     }
@@ -547,18 +565,64 @@ def reason_parity(decisions, protected, *, labels=None, top_n: int = 5) -> dict:
     return out
 
 
+def _column_matching_protected(X, protected, names) -> str | None:
+    """A feature that is a one-to-one relabelling of the protected attribute.
+
+    Exact correspondence only — each feature value maps to one group and each
+    group to one feature value. A coincidence that strong is either the
+    attribute itself or a perfect proxy for it, and both are worth naming.
+    """
+    X = np.asarray(X, dtype=float)
+    g = np.asarray(protected).reshape(-1)
+    if X.ndim != 2 or len(X) != len(g) or X.shape[1] != len(names):
+        return None
+    n_groups = len(np.unique(g))
+    for j, name in enumerate(names):
+        column = X[:, j]
+        if len(np.unique(column)) != n_groups:
+            continue
+        pairs = len({(float(v), w) for v, w in zip(column.tolist(), g.tolist())})
+        if pairs == n_groups:
+            return str(name)
+    return None
+
+
 def counterfactual(artifact, X, protected, protected_feature: str | None, *, labels=None) -> dict:
     """§11 — flip the protected attribute and see whether decisions move.
 
-    When the attribute is not a model input this does not apply, and that is
-    reported rather than skipped: "the model does not use it, so the test is
-    inapplicable" is the desired outcome and should appear in the report as a
-    positive statement rather than a silent gap.
+    Three outcomes, reported rather than skipped, and kept distinct because
+    they mean different things:
+
+    - ``status="not_named"`` — ``protected_feature`` is ``None``. The audit
+      was not told which input, if any, is the attribute, so it has nothing to
+      flip. That is **not** evidence the model ignores the attribute, and the
+      reason says so. If a column of ``X`` matches the protected attribute
+      value for value, the reason names it.
+    - ``status="not_an_input"`` — a name was given and the artifact has no
+      such feature, so the model cannot be using it directly. That is the
+      desired outcome and appears as a positive statement.
+    - ``status="flipped"`` — the attribute is an input and was flipped.
     """
     names = list(artifact["features"]["names"])
-    if protected_feature is None or protected_feature not in names:
+    if protected_feature is None:
+        reason = (
+            "The protected attribute was not named as a model input "
+            "(protected_feature=None), so there is nothing to flip and the "
+            "counterfactual test was not run. This is not a finding that the "
+            "model ignores the attribute: if it is a model input, pass its "
+            "column name as protected_feature."
+        )
+        match = _column_matching_protected(X, protected, names)
+        if match is not None:
+            reason += (
+                f" Column {match!r} matches the protected attribute value for "
+                "value — if that is the attribute, name it."
+            )
+        return {"applicable": False, "status": "not_named", "reason": reason}
+    if protected_feature not in names:
         return {
             "applicable": False,
+            "status": "not_an_input",
             "reason": (
                 f"{protected_feature!r} is not among the artifact's features, so the "
                 "model cannot be using it directly. The counterfactual test does not "
@@ -581,6 +645,7 @@ def counterfactual(artifact, X, protected, protected_feature: str | None, *, lab
     if len(values) != 2:
         return {
             "applicable": False,
+            "status": "not_binary",
             "reason": (
                 f"{protected_feature!r} takes {len(values)} values; " "the flip is defined for two."
             ),
@@ -601,6 +666,7 @@ def counterfactual(artifact, X, protected, protected_feature: str | None, *, lab
     deltas_arr = np.asarray(deltas, dtype=float)
     out: dict = {
         "applicable": True,
+        "status": "flipped",
         "feature": protected_feature,
         "band_flip_rate": float(changed / len(X)),
         "mean_abs_score_change_micro": float(np.abs(deltas_arr).mean()),

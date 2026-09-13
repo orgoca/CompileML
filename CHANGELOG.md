@@ -7,6 +7,32 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Fixed
+- `attribution_disparity` (§6) took group means in floats, so an exact
+  decomposition reported a residual of about ±1e-11 whose sign depended on
+  how the sums rounded — `print_summary()` could print `residual -0` under a
+  guide promising "zero, not small". The means are now exact rationals over
+  integer sums: the residual is `0.0`, and `mean_gap_half_micro ==
+  sum_of_feature_gaps` holds with `==` regardless of machine or row order.
+  The committed fairness notebook had itself been printing `1.455e-11`.
+
+  The tests compared with `approx`, which is how this shipped. They now
+  assert equality, and a regression test uses integer data on which float
+  means provably leave a residual — checked first, so it cannot pass
+  vacuously.
+
+- `counterfactual` (§11) with `protected_feature=None` reported "None is not
+  among the artifact's features, so the model cannot be using it directly".
+  The audit cannot know that, and on the UCI panel it was false: `SEX` is a
+  model input. `None` now reports that the protected attribute was not named
+  as a model input and that this is not evidence the model ignores it, and
+  names any column matching the attribute value for value. Results carry a
+  `status` — `not_named`, `not_an_input`, `not_binary` or `flipped` — so the
+  cases can be told apart without parsing prose.
+
+- The fairness guide's §6 example was transcribed from a different run than
+  the notebook it links to. It now shows the notebook's output.
+
 ## [0.5.1] - 2026-09-12
 
 Documentation only — no change to runtime code, no API or behaviour change.
