@@ -7,6 +7,23 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-13
+
+Stability monitoring, limited to what a compiled artifact makes possible.
+
+A risk committee asks three things every period, and `compileml.monitor`
+answers each from the decisions the artifact already produced: which
+features moved the score — decomposed exactly, with a residual of zero;
+whether the bands are still calibrated, read against the band each decision
+logged; and whether the frozen baseline still describes the population.
+It computes no PSI, CSI or distribution tests; the tools you already run do
+those, and the guide shows how to feed them.
+
+A minor release because `compileml.monitor` is new public API. Nothing else
+changes behaviour: the runtime, exporters and artifact schema are untouched,
+and fairness §6 now shares its arithmetic with drift decomposition, with
+byte-identical output.
+
 ### Added
 - `compileml.monitor` ([#9](https://github.com/orgoca/CompileML/issues/9)):
   stability monitoring limited to what a compiled artifact makes possible.
