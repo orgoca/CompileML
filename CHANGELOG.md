@@ -7,6 +7,18 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- FAQ: *Why not PMML, ONNX, or m2cgen?*
+  ([#17](https://github.com/orgoca/CompileML/issues/17)) — where each is the
+  better choice, what CompileML trades for its guarantee (a distilled model,
+  about 2% of Gini on the benchmark), and why the difference from PMML is
+  integer arithmetic and ensemble attribution rather than reason codes, which
+  PMML scorecards already carry.
+
+### Fixed
+- The FAQ's SHAP answer said explanations travel into the SQL and COBOL
+  exports. Neither emits reason codes yet (#14); it now says so.
+
 ## [0.6.0] - 2026-09-13
 
 Stability monitoring, limited to what a compiled artifact makes possible.
