@@ -59,4 +59,22 @@ deployment gate.
 ```bash
 compileml export decision.json --target sql   --dialect ansi --out scorer.sql
 compileml export decision.json --target cobol --program-id CMLSCORE --out scorer.cob
+
+# with reason codes and integer impacts (depth <= 2 artifacts)
+compileml export decision.json --target sql   --explain --top-k 4 --out scorer.sql
+compileml export decision.json --target cobol --explain --top-k 4 --out scorer.cob
 ```
+
+Both targets emit score, band and calibrated PD. `--explain` adds the reason
+codes and display-scale integer impacts `decide(..., explain=True)` returns, in
+order; `--top-k` sets how many per direction and defaults to the artifact's own.
+With `--explain`, the SQL query needs SQLite 3.35+, PostgreSQL 12+ or DuckDB.
+See [deploying](../howto/deploy.md) for the output fields.
+
+Exit status is `0` on success. When the exporter refuses an artifact it prints
+the error code and exits `2`:
+
+| Code | Target | Cause |
+|---|---|---|
+| `EXPLAIN_NOT_EXACT` | both | `--explain` on an artifact whose attribution is not exact (whitebox depth > 2) |
+| `REASON_CODE_NOT_ASCII` | COBOL | a reason code that is not printable ASCII |

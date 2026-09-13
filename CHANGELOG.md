@@ -7,6 +7,20 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-09-13
+
+Documentation only — no change to runtime or export code, no API or
+behaviour change. It exists because the documentation site pins its
+reference pages to a release tag, and two of them were missing what 0.7.0
+added.
+
+### Fixed
+- The CLI reference's `compileml export` section did not show `--explain` or
+  `--top-k`, or that a refused export exits with status 2. It now does, with
+  the error codes and the SQL engine floor for `--explain`.
+- The API reference did not list `ExportError`, although the deploy guide
+  tells readers to catch it. It is listed now, with its codes.
+
 ## [0.7.0] - 2026-09-13
 
 Reason codes wherever the decision runs.
