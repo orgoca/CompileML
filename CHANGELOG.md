@@ -7,6 +7,16 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- `CODE_OF_CONDUCT.md`: the Contributor Covenant, version 2.1, unmodified
+  apart from the reporting contact.
+
+### Changed
+- `CONTRIBUTING.md` states the two-sides rule: the learning side may use any
+  library; the inference side, where the artifact decides, is standard-library
+  only and simple arithmetic, always. It links the Code of Conduct, and its
+  starting points no longer list fair lending (#10), which shipped in 0.5.0.
+
 ## [0.5.2] - 2026-09-13
 
 Fixes to what the fair-lending audit reports, and answers to an independent

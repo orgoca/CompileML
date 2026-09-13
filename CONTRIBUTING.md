@@ -3,6 +3,9 @@
 Thanks for your interest. CompileML aims for a small number of hard promises,
 each enforced by tests — contributions are judged against that bar.
 
+Everyone taking part is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Where to start
 
 The [open issues](https://github.com/orgoca/CompileML/issues) are written to be
@@ -15,7 +18,7 @@ infrastructure and something a risk function could actually adopt:
 | | |
 |---|---|
 | [#9](https://github.com/orgoca/CompileML/issues/9) | **Stability monitoring.** Not another PSI implementation — the issue is explicit about what *not* to rebuild. The open work is decomposing score drift across features exactly, which the reconciliation identity makes possible and external tooling can only approximate. |
-| [#10](https://github.com/orgoca/CompileML/issues/10) | **Fair lending.** Disparate impact testing, plus disparity decomposition over the exact attributions — something the reconciliation identity makes possible here in a way it is not elsewhere. |
+| [#14](https://github.com/orgoca/CompileML/issues/14) | **Calibrated PD and reason codes from COBOL.** The mainframe export emits score and band only, so the decision cannot yet produce its adverse-action reasons where it actually runs. Per-tree attribution has made the computation bounded; the GnuCOBOL parity harness is already in CI. |
 
 Smaller entry points: [#17](https://github.com/orgoca/CompileML/issues/17)
 (FAQ: why not PMML/ONNX), [#18](https://github.com/orgoca/CompileML/issues/18)
@@ -34,8 +37,21 @@ design discussion is the work.
 1. **The spec is the contract.** Runtime, exporters, and validators implement
    [docs/ARTIFACT_SPEC.md](docs/ARTIFACT_SPEC.md). Behavior changes require a
    spec change in the same PR.
-2. **`compileml.runtime` stays standard-library only.** A test parses every
-   runtime module's imports; don't fight it.
+2. **Two sides, and only one of them is constrained.** Decide which side a
+   change is on before writing it.
+   - The **learning side** fits, compiles, bands and tunes models, and analyses
+     decisions after they are made (`compileml.fairness`, monitoring). Any
+     library is fine.
+   - The **inference side** is where the artifact lives and makes the decision:
+     `compileml.runtime`, and the code the exporters emit. It is
+     standard-library only, always, and uses only simple arithmetic —
+     integer addition, comparison and table lookup — so the same decision
+     compiles to NumPy matrices, SQL and COBOL. A test parses every runtime
+     module's imports; don't fight it.
+
+   Code that makes or changes a decision is inference side. A spec change to
+   scoring, banding, calibration or attribution has to stay expressible in
+   that arithmetic, or it does not belong in the artifact.
 3. **Claims are tests.** If a PR adds a guarantee to the docs, it adds the test
    that enforces it. If it can't be tested, it isn't claimed.
 4. **No timestamps or randomness in hashed artifact content.** Identical
