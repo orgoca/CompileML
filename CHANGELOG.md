@@ -16,6 +16,23 @@ inside each artifact (`schema_version`).
   The spec requires every exporter to reproduce §4–§6, and COBOL now does.
   The GnuCOBOL run-parity test checks latent, band and PD row by row in all
   three modes, including rows clamped at both ends of the score range.
+- The COBOL export emits reason codes and integer impacts with
+  `explain=True` (`compileml export --target cobol --explain`), completing
+  [#14](https://github.com/orgoca/CompileML/issues/14). The program leaves the
+  top `top_k` adverse and favorable codes and display-scale impacts in
+  `REASON-NEG-*` / `REASON-POS-*`, matching `decide(..., explain=True)` exactly
+  and in order. Each tree's features and the baseline are known at export, so
+  every baseline comparison is resolved then and each subset walk is a short,
+  fixed `IF` tree. Codes and impacts only: message text belongs to the
+  institution's letter templates. Opt-in, because the program grows with tree
+  count.
+
+  Refusals raise `ExportError` with a stable code — `EXPLAIN_NOT_EXACT` for
+  artifacts whose attribution is not exact, `REASON_CODE_NOT_ASCII` for codes
+  a mainframe character set would not carry — and the CLI exits with status 2.
+  GnuCOBOL parity covers fallback codes, a dictionary with an escaped quote and
+  a suppressed feature, and an artifact built to force ties in both the
+  largest-remainder rounding and the reason ranking.
 - FAQ: *Why not PMML, ONNX, or m2cgen?*
   ([#17](https://github.com/orgoca/CompileML/issues/17)) — where each is the
   better choice, what CompileML trades for its guarantee (a distilled model,

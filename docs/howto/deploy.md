@@ -72,9 +72,41 @@ and PD against the Python runtime row by row, for every calibration mode.
   compile the artifact with `build_artifact(threshold_decimals=…)` so every
   runtime — Python included — compares the identical quantized thresholds
   ([spec §11](../ARTIFACT_SPEC.md)).
-- Scope: score, band and calibrated PD. Reason codes are not emitted by either
-  export yet — they come only from the Python runtime
-  ([#14](https://github.com/orgoca/CompileML/issues/14) tracks adding them).
+- Scope: score, band and calibrated PD by default.
+
+### Reason codes on the mainframe
+
+```bash
+compileml export decision.json --target cobol --explain --top-k 4 --out scorer.cob
+```
+
+`--explain` (`export_cobol(..., explain=True)`) adds exact attribution: after
+scoring, the program leaves the top adverse and favorable reasons in
+`REASON-NEG-CODE(i)` / `REASON-NEG-IMPACT(i)` and `REASON-POS-CODE(i)` /
+`REASON-POS-IMPACT(i)`, with `REASON-NEG-COUNT` and `REASON-POS-COUNT` saying how
+many slots are filled. The codes and display-scale integer impacts are the ones
+`decide(..., explain=True)` returns, in the same order; CI compiles the program
+under GnuCOBOL and checks them row by row, including forced ties.
+
+It emits **codes and impacts, not message text**. The customer-facing wording
+belongs to the institution's letter templates, keyed by code; carrying long
+localized strings through `PIC X` fields would add weight without adding
+anything the templates don't already do.
+
+Each tree's features and the artifact's baseline are known when the program is
+generated, so every comparison against a baseline value is resolved at export:
+a tree's subset walks become short, fixed `IF` trees over the real inputs. The
+program grows with tree count, which is why this is opt-in.
+
+When the exporter refuses, it raises `ExportError` with a stable `code`, and the
+CLI prints it and exits with status 2:
+
+| Code | Cause | What to do |
+|---|---|---|
+| `EXPLAIN_NOT_EXACT` | The artifact's attribution is not exact (whitebox depth > 2), so reasons would not reconcile to the score. | Compile at depth ≤ 2, or export without `--explain`. |
+| `REASON_CODE_NOT_ASCII` | A reason code — from the dictionary, or the `NEGATIVE_<name>` fallback — is not printable ASCII, which mainframe character sets would not carry unchanged. | Give that feature an ASCII `code` in the reason dictionary, or suppress it. |
+
+The SQL export does not emit reason codes yet.
 
 ## Which surface for what
 
@@ -83,6 +115,6 @@ and PD against the Python runtime row by row, for every calibration mode.
 | runtime `decide(explain=True)` | band, PD, exact reasons | decisioning API, adverse-action notices |
 | runtime `decide(explain=False)` | band, PD, latent | bulk pre-screening (no customer-facing decision) |
 | SQL export | band, PD, latent per row | warehouse batch, portfolio re-score |
-| COBOL export | band, PD, latent | core-banking / mainframe rails |
+| COBOL export | band, PD, latent; reason codes and impacts with `--explain` | core-banking / mainframe rails |
 
 Whatever the surface, the integers agree — that's the point.

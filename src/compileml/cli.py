@@ -112,9 +112,15 @@ def cmd_score(args) -> int:
 def cmd_export(args) -> int:
     artifact = load_artifact(args.artifact)
     if args.target == "cobol":
-        from compileml.export import export_cobol
+        from compileml.export import ExportError, export_cobol
 
-        text = export_cobol(artifact, program_id=args.program_id)
+        try:
+            text = export_cobol(
+                artifact, program_id=args.program_id, explain=args.explain, top_k=args.top_k
+            )
+        except ExportError as exc:
+            print(f"FAIL {exc}")
+            return 2
     else:
         from compileml.export import export_sql
 
@@ -245,6 +251,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--table", default="features", help="SQL source table name")
     p.add_argument("--dialect", choices=["ansi", "sqlite"], default="ansi")
     p.add_argument("--program-id", default="CMLSCORE", help="COBOL PROGRAM-ID")
+    p.add_argument(
+        "--explain",
+        action="store_true",
+        help="COBOL: also emit reason codes and impacts (depth <= 2 artifacts)",
+    )
+    p.add_argument("--top-k", type=int, default=None, help="COBOL: reasons per direction")
     p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("scorecard", help="collapse a depth<=2 artifact into an exact scorecard")

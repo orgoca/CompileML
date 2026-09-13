@@ -19,7 +19,7 @@ import pytest
 from compileml.artifact import build_artifact
 from compileml.bands import monotone_quantile_bands
 from compileml.compile import train_whitebox
-from compileml.export import export_cobol, export_sql
+from compileml.export import ExportError, export_cobol, export_sql
 from compileml.runtime import decide
 
 RNG = np.random.default_rng(31)
@@ -229,3 +229,154 @@ def test_sql_1_band_export(fitted):
 
     con.execute(sql)
     con.close()
+
+
+# ------------------------------------------------------- COBOL reason codes
+def _with_dictionary(artifact):
+    """Custom codes, one needing quote escaping, and a suppressed feature."""
+    import copy
+
+    art = copy.deepcopy(artifact)
+    art["reasons"] = {
+        "f0": {"code": "RC_F0"},
+        "f1": {"code": "O'NEIL_RULE"},
+        "f2": {"suppress": True},
+    }
+    return art
+
+
+def _symmetric(artifact):
+    """Identical stumps on f0/f1 and on f2/f3: equal contributions force ties in
+    both the largest-remainder rounding and the reason ranking."""
+    import copy
+
+    art = copy.deepcopy(artifact)
+    art["features"]["baseline"] = [0.0] * P
+
+    def stump(feature, above):
+        return {
+            "feature": [feature, -2, -2],
+            "threshold": [0.0, -2.0, -2.0],
+            "left": [1, -1, -1],
+            "right": [2, -1, -1],
+            "value_micro": [0, 0, above],
+        }
+
+    art["model"]["trees"] = [stump(0, 1500), stump(1, 1500), stump(2, -1500), stump(3, -1500)]
+    art["model"]["base_micro"] = 400_000
+    return art
+
+
+def test_cobol_explain_is_opt_in(fitted):
+    _, artifact = fitted
+    assert "EXPLAIN-ONE" not in export_cobol(artifact)
+    text = export_cobol(artifact, explain=True)
+    assert "PERFORM EXPLAIN-ONE" in text
+    assert "ATTR-TREE-0001." in text
+    assert "VALUE 'NEGATIVE_f0'." in text  # fallback code without a dictionary
+
+
+def test_cobol_explain_escapes_codes_and_leaves_suppressed_features_out(fitted):
+    _, artifact = fitted
+    text = export_cobol(_with_dictionary(artifact), explain=True)
+    assert "VALUE 'O''NEIL_RULE'." in text
+    eligible = text[text.index("01 X-ELIGIBLE-VALUES.") : text.index("01 X-ELIGIBLE-TABLE")]
+    assert [int(v) for v in re.findall(r"VALUE (\d)\.", eligible)] == [1, 1, 0, 1, 1]
+
+
+def test_cobol_explain_refuses_inexact_attribution(fitted):
+    import copy
+
+    _, artifact = fitted
+    inexact = copy.deepcopy(artifact)
+    inexact["runtime"]["exact_attribution"] = False
+    with pytest.raises(ExportError) as err:
+        export_cobol(inexact, explain=True)
+    assert err.value.code == "EXPLAIN_NOT_EXACT"
+    export_cobol(inexact)  # score, band and PD are still exported
+
+
+def test_cobol_explain_refuses_non_ascii_codes_unless_suppressed(fitted):
+    import copy
+
+    _, artifact = fitted
+    art = copy.deepcopy(artifact)
+    art["reasons"] = {"f3": {"code": "RETRASO_AÑO"}}
+    with pytest.raises(ExportError) as err:
+        export_cobol(art, explain=True)
+    assert err.value.code == "REASON_CODE_NOT_ASCII"
+
+    art["reasons"] = {"f3": {"code": "RETRASO_AÑO", "suppress": True}}
+    export_cobol(art, explain=True)  # never cited, so never emitted
+
+
+def _read_harness(lines, n_rows, code_width):
+    """Per row: latent, band, pd, then the adverse and favorable (code, impact) lists."""
+    rows, i = [], 0
+    for _ in range(n_rows):
+        latent, band, pd = lines[i].split()
+        counts = [int(t.replace("+", "")) for t in lines[i + 1].split()[1:]]
+        i += 2
+        reasons = []
+        for tag, count in zip("NP", counts):
+            block = []
+            for _ in range(count):
+                line = lines[i]
+                assert line.startswith(tag + " "), line
+                code = line[2 : 2 + code_width].rstrip()
+                block.append((code, int(line[3 + code_width :].strip().replace("+", ""))))
+                i += 1
+            reasons.append(block)
+        rows.append(
+            (int(latent.replace("+", "")), band.strip(), int(pd.replace("+", "")), *reasons)
+        )
+    assert i == len(lines)
+    return rows
+
+
+@pytest.mark.parametrize(
+    "case, top_k",
+    [("fallback codes", None), ("dictionary", 3), ("symmetric ties", 1), ("symmetric ties", 2)],
+)
+def test_cobol_reason_parity_under_gnucobol(fitted, tmp_path, case, top_k):
+    """Compile the explain harness under GnuCOBOL and require the reason codes
+    and integer impacts decide() produces, in order, on every row."""
+    import shutil
+    import subprocess
+
+    if shutil.which("cobc") is None:
+        pytest.skip("GnuCOBOL not installed (CI runs this)")
+    X, fitted_artifact = fitted
+    if case == "fallback codes":
+        artifact = fitted_artifact
+        rows = [[float(v) for v in row] for row in X[:150]]
+    elif case == "dictionary":
+        artifact = _with_dictionary(fitted_artifact)
+        rows = [[float(v) for v in row] for row in X[:150]]
+    else:
+        artifact = _symmetric(fitted_artifact)
+        rows = [[1.0, 1.0, 1.0, 1.0, 0.0], [1.0, 1.0, -1.0, -1.0, 0.0], [-1.0] * P, [0.0] * P]
+
+    text = export_cobol(artifact, driver_rows=rows, explain=True, top_k=top_k)
+    src = tmp_path / "harness.cob"
+    src.write_text(text, encoding="utf-8")
+    exe = tmp_path / "harness"
+    compiled = subprocess.run(
+        ["cobc", "-x", "-o", str(exe), str(src)], capture_output=True, text=True
+    )
+    assert compiled.returncode == 0, compiled.stderr
+    run = subprocess.run([str(exe)], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+
+    width = int(re.search(r"05 X-NEG-CODE PIC X\((\d+)\)", text).group(1))
+    lines = [ln for ln in run.stdout.splitlines() if ln.strip()]
+    k = top_k if top_k is not None else artifact["runtime"]["top_k"]
+    for row, got in zip(rows, _read_harness(lines, len(rows), width)):
+        ref = decide(artifact, row, explain=True, top_k=k)
+        assert got == (
+            ref["latent_int"],
+            ref["band"],
+            ref["pd_ppm"],
+            [(r["code"], r["impact_int"]) for r in ref["reasons_negative"]],
+            [(r["code"], r["impact_int"]) for r in ref["reasons_positive"]],
+        )
