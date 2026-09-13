@@ -7,6 +7,22 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-13
+
+Reason codes wherever the decision runs.
+
+Until now an adverse-action reason came only from the Python runtime. The
+COBOL and SQL exports now carry the same codes and integer impacts as
+`decide(..., explain=True)`, in the same order, onto the mainframe and into
+the warehouse — and the COBOL export gains the calibrated PD the spec always
+required of it. The explanation is no longer something a deployment has to
+leave behind when it leaves Python.
+
+Opt-in in both exports (`explain=True`, `--explain`), because the generated
+program or query grows with the model. Without it, the SQL query is
+byte-identical to 0.6.0's and the COBOL program differs only by the PD. A minor release because `explain`, `top_k` and `ExportError` are
+new public API. The runtime and the artifact schema are untouched.
+
 ### Added
 - The COBOL export emits the calibrated PD
   ([#14](https://github.com/orgoca/CompileML/issues/14), part 1). The
@@ -63,10 +79,9 @@ inside each artifact (`schema_version`).
   working-storage fields (for example `accum_micro` or `pd_ppm`) would have
   shadowed it. Those names are now reserved, and such a feature gets a
   suffix.
-- The deploy guide said reason codes were a SQL concern; neither export
-  emits them yet.
-- The FAQ's SHAP answer said explanations travel into the SQL and COBOL
-  exports. Neither emits reason codes yet (#14); it now says so.
+- The deploy guide called reason codes a SQL concern, and the FAQ said
+  explanations already travelled into both exports; at the time neither
+  export emitted them. Both now do, and both documents say so.
 
 ## [0.6.0] - 2026-09-13
 
