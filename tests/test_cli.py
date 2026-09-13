@@ -177,3 +177,28 @@ def test_compile_end_to_end(env, tmp_path, capsys):
         )
     assert main(["verify", str(out)]) == 0
     assert main(["score", str(out), "--features", "0.1,0.2,0.3,0.4"]) == 0
+
+
+def test_export_cobol_explain_and_documented_refusal(env, tmp_path, capsys):
+    tmp, _, artifact_path, csv_path, _ = env
+    out = tmp_path / "explain.cob"
+    assert main(["export", artifact_path, "--target", "cobol", "--explain", "--out", str(out)]) == 0
+    assert "PERFORM EXPLAIN-ONE" in out.read_text(encoding="utf-8")
+
+    X = np.loadtxt(csv_path, delimiter=",", skiprows=1)[:, :P]
+    teacher = 1.0 / (1.0 + np.exp(-(X[:, 0] - 0.6 * X[:, 1])))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        deep, _ = train_whitebox(X, teacher, n_estimators=10, max_depth=3, random_state=3)
+        latent = np.clip(deep.predict(X), 0, 1)
+        art = build_artifact(
+            deep,
+            FEATURES,
+            np.median(X, axis=0),
+            monotone_quantile_bands(latent, (teacher > 0.5).astype(int), n_bands=4),
+        )
+    deep_path = tmp / "deep.json"
+    save_artifact(art, deep_path)
+    capsys.readouterr()
+    assert main(["export", str(deep_path), "--target", "cobol", "--explain"]) == 2
+    assert "EXPLAIN_NOT_EXACT" in capsys.readouterr().out

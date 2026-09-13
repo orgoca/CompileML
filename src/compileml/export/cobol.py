@@ -14,7 +14,12 @@ integer pipeline bit-for-bit:
   first-match rule and ``div_rha`` interpolation as the runtime (spec §6).
   The table's numerators are never negative — ``f_micro`` is strictly
   increasing and ``pd_ppm`` non-decreasing, both enforced on load — so the
-  non-negative ``div_rha`` form is exact.
+  non-negative ``div_rha`` form is exact;
+- with ``explain=True``, exact attribution, display impacts and reason codes
+  (spec §7). Each tree's features and the artifact's baseline are known when
+  the program is generated, so every comparison against a baseline value is
+  resolved then: each of a tree's subset walks becomes a short, fixed IF tree
+  over the real inputs, and the rest is integer arithmetic and small loops.
 
 Feature inputs are declared ``COMP-2`` (IEEE binary64 under GnuCOBOL and
 Enterprise COBOL with IEEE arithmetic). Threshold literals are emitted in
@@ -28,7 +33,32 @@ from __future__ import annotations
 
 import re
 
+from compileml.runtime.decide import _apply_precision
+
 LEAF = -2
+
+# A depth <= 2 tree splits on at most three features; that bounds the subset
+# walks per tree at eight and is what makes exact attribution exact.
+MAX_TREE_FEATURES = 3
+
+
+class ExportError(ValueError):
+    """An artifact the exporter will not render, with a stable ``code``.
+
+    Codes (documented in ``docs/howto/deploy.md``):
+
+    - ``EXPLAIN_NOT_EXACT`` — ``explain=True`` on an artifact whose attribution
+      is not exact (whitebox depth > 2). Reason codes would not reconcile to
+      the score, so none are emitted.
+    - ``REASON_CODE_NOT_ASCII`` — a reason code that is not printable ASCII.
+      Mainframe character sets would not carry it unchanged; give the feature
+      an ASCII ``code`` in the artifact's reason dictionary.
+    """
+
+    def __init__(self, code: str, message: str):
+        super().__init__(f"[{code}] {message}")
+        self.code = code
+
 
 # Working-storage names the program declares itself. A feature whose
 # sanitized name would collide with one of these gets a suffix instead.
@@ -84,6 +114,196 @@ def _emit_tree(tree: dict, names: list[str], indent: int) -> list[str]:
     return lines
 
 
+def _split_features(tree: dict) -> list[int]:
+    return sorted({f for f in tree["feature"] if f != LEAF})
+
+
+def _emit_walk(
+    tree: dict, names: list[str], baselined: dict[int, float], target: str, indent: int
+) -> list[str]:
+    """One subset walk: features in ``baselined`` are resolved now, the rest compared live."""
+    lines: list[str] = []
+
+    def recurse(node: int, depth: int) -> None:
+        pad = " " * (indent + 4 * depth)
+        feature = tree["feature"][node]
+        if feature == LEAF:
+            lines.append(f"{pad}MOVE {int(tree['value_micro'][node])} TO {target}")
+        elif feature in baselined:
+            go_left = baselined[feature] <= float(tree["threshold"][node])
+            recurse(tree["left"][node] if go_left else tree["right"][node], depth)
+        else:
+            lines.append(f"{pad}IF {names[feature]} <= {_literal(tree['threshold'][node])}")
+            recurse(tree["left"][node], depth + 1)
+            lines.append(f"{pad}ELSE")
+            recurse(tree["right"][node], depth + 1)
+            lines.append(f"{pad}END-IF")
+
+    recurse(0, 0)
+    return lines
+
+
+def _emit_tree_attribution(
+    index: int, tree: dict, names: list[str], baseline: list[float]
+) -> list[str]:
+    """Spec §7 for one tree: its subset walks, main effects and pair interactions."""
+    feats = _split_features(tree)
+    k = len(feats)
+    lines = [f"ATTR-TREE-{index:04d}."]
+    for mask in range(1 << k):
+        baselined = {j: baseline[j] for b, j in enumerate(feats) if (mask >> b) & 1}
+        lines += _emit_walk(tree, names, baselined, f"X-WALK({mask + 1})", indent=4)
+    for b, j in enumerate(feats):
+        lines.append(
+            f"    COMPUTE X-D({j + 1}) = X-D({j + 1}) + X-WALK(1) - X-WALK({(1 << b) + 1})"
+        )
+    for a in range(k):
+        for b in range(a + 1, k):
+            ma, mb = 1 << a, 1 << b
+            lines += [
+                "    COMPUTE X-INTER = X-WALK(1)"
+                f" - X-WALK({ma + 1}) - X-WALK({mb + 1}) + X-WALK({(ma | mb) + 1})",
+                f"    ADD X-INTER TO X-ISUM({feats[a] + 1})",
+                f"    ADD X-INTER TO X-ISUM({feats[b] + 1})",
+            ]
+    lines.append("    CONTINUE.")
+    return lines
+
+
+def _cobol_string(text: str) -> str:
+    if not text:
+        return "SPACES"  # a zero-length literal is not valid COBOL
+    return "'" + text.replace("'", "''") + "'"
+
+
+def _reason_codes(artifact: dict) -> tuple[list[str], list[str], list[int]]:
+    """Adverse and favorable codes per feature, and whether each may be cited (spec §7.6)."""
+    names = [str(n) for n in artifact["features"]["names"]]
+    dictionary = artifact.get("reasons") or {}
+    negative, positive, eligible = [], [], []
+    for name in names:
+        entry = dictionary.get(name) or {}
+        if entry.get("suppress"):
+            negative.append("")
+            positive.append("")
+            eligible.append(0)
+            continue
+        codes = (
+            str(entry.get("code", f"NEGATIVE_{name}")),
+            str(entry.get("code", f"POSITIVE_{name}")),
+        )
+        for code in codes:
+            if not (code.isascii() and code.isprintable()):
+                raise ExportError(
+                    "REASON_CODE_NOT_ASCII",
+                    f"reason code {code!r} for feature {name!r} is not printable ASCII; "
+                    "give the feature an ASCII 'code' in the reason dictionary",
+                )
+        negative.append(codes[0])
+        positive.append(codes[1])
+        eligible.append(1)
+    return negative, positive, eligible
+
+
+def _emit_value_table(name: str, pic: str, values: list[str]) -> list[str]:
+    lines = [f"01 {name}-VALUES."]
+    lines += [f"   05 FILLER PIC {pic} VALUE {v}." for v in values]
+    lines += [
+        f"01 {name}-TABLE REDEFINES {name}-VALUES.",
+        f"   05 {name} PIC {pic} OCCURS {len(values)}.",
+    ]
+    return lines
+
+
+def _emit_explain(artifact: dict, n: int, ratio: int, top_k: int) -> list[str]:
+    """Per-feature contributions, display impacts (§7.5) and reason selection (§7.6)."""
+    ratio2 = 2 * ratio
+    lines = ["EXPLAIN-ONE.", "    INITIALIZE X-FEATURE-STATE", "    INITIALIZE REASONS"]
+    for i, tree in enumerate(artifact["model"]["trees"]):
+        if _split_features(tree):
+            lines.append(f"    PERFORM ATTR-TREE-{i + 1:04d}")
+    lines += [
+        "    MOVE 0 TO X-SUMC2",
+        "    MOVE 0 TO X-SUMQ",
+        f"    PERFORM VARYING X-J FROM 1 BY 1 UNTIL X-J > {n}",
+        "        COMPUTE X-C2(X-J) = 2 * X-D(X-J) - X-ISUM(X-J)",
+        "        ADD X-C2(X-J) TO X-SUMC2",
+        "        *> floor division: COBOL truncates toward zero, so step down once",
+        f"        COMPUTE X-Q(X-J) = X-C2(X-J) / {ratio2}",
+        f"        COMPUTE X-R(X-J) = X-C2(X-J) - X-Q(X-J) * {ratio2}",
+        "        IF X-R(X-J) < 0",
+        "            SUBTRACT 1 FROM X-Q(X-J)",
+        f"            ADD {ratio2} TO X-R(X-J)",
+        "        END-IF",
+        "        ADD X-Q(X-J) TO X-SUMQ",
+        "        MOVE X-Q(X-J) TO X-IMPACT(X-J)",
+        "    END-PERFORM",
+        "    *> display target: div_rha(sum of c2, 2 * ratio), signed (spec 7.5)",
+        "    IF X-SUMC2 >= 0",
+        f"        COMPUTE X-TARGET = (2 * X-SUMC2 + {ratio2}) / (2 * {ratio2})",
+        "    ELSE",
+        f"        COMPUTE X-TARGET = (0 - 2 * X-SUMC2 + {ratio2}) / (2 * {ratio2})",
+        "        COMPUTE X-TARGET = 0 - X-TARGET",
+        "    END-IF",
+        "    COMPUTE X-DEFICIT = X-TARGET - X-SUMQ",
+        "    IF X-DEFICIT > 0",
+        "        PERFORM GIVE-ONE-UNIT X-DEFICIT TIMES",
+        "    END-IF",
+        f"    PERFORM PICK-ADVERSE {top_k} TIMES",
+        f"    PERFORM PICK-FAVORABLE {top_k} TIMES",
+        "    CONTINUE.",
+        "",
+        "GIVE-ONE-UNIT.",
+        "    *> largest remainder first, lower feature index on ties",
+        "    MOVE 0 TO X-BEST",
+        f"    PERFORM VARYING X-J FROM 1 BY 1 UNTIL X-J > {n}",
+        "        IF X-GIVEN(X-J) = 0",
+        "            IF X-BEST = 0",
+        "                MOVE X-J TO X-BEST",
+        "            ELSE",
+        "                IF X-R(X-J) > X-R(X-BEST)",
+        "                    MOVE X-J TO X-BEST",
+        "                END-IF",
+        "            END-IF",
+        "        END-IF",
+        "    END-PERFORM",
+        "    IF X-BEST > 0",
+        "        MOVE 1 TO X-GIVEN(X-BEST)",
+        "        ADD 1 TO X-IMPACT(X-BEST)",
+        "    END-IF",
+        "    CONTINUE.",
+        "",
+    ]
+    for para, sign, cmp, table, slot in (
+        ("PICK-ADVERSE", ">", ">", "X-NEG-CODE", "NEG"),
+        ("PICK-FAVORABLE", "<", "<", "X-POS-CODE", "POS"),
+    ):
+        lines += [
+            f"{para}.",
+            "    MOVE 0 TO X-BEST",
+            f"    PERFORM VARYING X-J FROM 1 BY 1 UNTIL X-J > {n}",
+            f"        IF X-ELIGIBLE(X-J) = 1 AND X-TAKEN(X-J) = 0 AND X-C2(X-J) {sign} 0",
+            "            IF X-BEST = 0",
+            "                MOVE X-J TO X-BEST",
+            "            ELSE",
+            f"                IF X-C2(X-J) {cmp} X-C2(X-BEST)",
+            "                    MOVE X-J TO X-BEST",
+            "                END-IF",
+            "            END-IF",
+            "        END-IF",
+            "    END-PERFORM",
+            "    IF X-BEST > 0",
+            "        MOVE 1 TO X-TAKEN(X-BEST)",
+            f"        ADD 1 TO REASON-{slot}-COUNT",
+            f"        MOVE {table}(X-BEST) TO REASON-{slot}-CODE(REASON-{slot}-COUNT)",
+            f"        MOVE X-IMPACT(X-BEST) TO REASON-{slot}-IMPACT(REASON-{slot}-COUNT)",
+            "    END-IF",
+            "    CONTINUE.",
+            "",
+        ]
+    return lines
+
+
 def _emit_calibration(calibration: dict | None, micro_scale: int) -> list[str]:
     """The spec §6 calibration as one EVALUATE, mirroring the SQL export's CASE."""
     lines = ["CALIBRATE-PD."]
@@ -133,6 +353,8 @@ def export_cobol(
     *,
     program_id: str = "CMLSCORE",
     driver_rows: list | None = None,
+    explain: bool = False,
+    top_k: int | None = None,
 ) -> str:
     """Render the artifact's score, band and calibrated PD as a COBOL program.
 
@@ -146,8 +368,19 @@ def export_cobol(
     ``latent_int band pd_ppm`` one row per line — compile it, run it, and diff
     the output against the Python runtime. CI does exactly that under GnuCOBOL.
 
-    Scope note: reason codes are not emitted yet; they come only from the
-    Python runtime (#14).
+    With ``explain=True`` the program also computes exact attribution and
+    leaves the top ``top_k`` adverse and favorable reasons in
+    ``REASON-NEG-CODE(i)`` / ``REASON-NEG-IMPACT(i)`` and
+    ``REASON-POS-CODE(i)`` / ``REASON-POS-IMPACT(i)``, with
+    ``REASON-NEG-COUNT`` and ``REASON-POS-COUNT`` saying how many are filled.
+    Codes and display-scale integer impacts match
+    ``decide(..., explain=True)`` exactly; message text stays with the
+    institution's letter templates. ``top_k`` defaults to the artifact's own.
+    The driver harness then also prints each reason.
+
+    Raises:
+        ExportError: ``EXPLAIN_NOT_EXACT`` or ``REASON_CODE_NOT_ASCII`` —
+            see :class:`ExportError`.
     """
     model = artifact["model"]
     micro_scale = int(model["micro_scale"])
@@ -160,6 +393,26 @@ def export_cobol(
     used: set[str] = set(RESERVED)
     cobol_names = [_cobol_name(n, used) for n in feature_names]
     label_width = max(len(x) for x in labels)
+    n_features = len(feature_names)
+
+    if explain:
+        exact = artifact.get("runtime", {}).get("exact_attribution") is True
+        if not exact or any(len(_split_features(t)) > MAX_TREE_FEATURES for t in model["trees"]):
+            raise ExportError(
+                "EXPLAIN_NOT_EXACT",
+                "this artifact's attribution is not exact (whitebox depth > 2), so "
+                "reason codes would not reconcile to the score; compile at depth <= 2 "
+                "or export without explain",
+            )
+        k = int(top_k if top_k is not None else artifact.get("runtime", {}).get("top_k", 5))
+        if k < 1:
+            raise ValueError("top_k must be at least 1 when explain=True")
+        neg_codes, pos_codes, eligible = _reason_codes(artifact)
+        code_width = max([len(c) for c in neg_codes + pos_codes] + [1])
+        baseline = _apply_precision(
+            [float(b) for b in artifact["features"]["baseline"]],
+            model.get("input_precision", "float64"),
+        )
 
     out: list[str] = []
     push = out.append
@@ -184,6 +437,47 @@ def export_cobol(
     push(f"01 FINAL-BAND         PIC X({label_width})   VALUE SPACES.")
     push("01 F-PD-STEP          PIC S9(9)  COMP-5 VALUE 0.")
     push("01 F-PD-PPM           PIC S9(9)  COMP-5 VALUE 0.")
+    if explain:
+        push("*> ---- explanation (spec 7) ----")
+        push("01 X-J                PIC S9(9)  COMP-5 VALUE 0.")
+        push("01 X-BEST             PIC S9(9)  COMP-5 VALUE 0.")
+        push("01 X-INTER            PIC S9(18) COMP-5 VALUE 0.")
+        push("01 X-SUMC2            PIC S9(18) COMP-5 VALUE 0.")
+        push("01 X-SUMQ             PIC S9(18) COMP-5 VALUE 0.")
+        push("01 X-TARGET           PIC S9(18) COMP-5 VALUE 0.")
+        push("01 X-DEFICIT          PIC S9(18) COMP-5 VALUE 0.")
+        push("01 X-WALKS.")
+        push("   05 X-WALK          PIC S9(15) COMP-5 OCCURS 8.")
+        push("01 X-FEATURE-STATE.")
+        push(f"   05 X-FEATURE OCCURS {n_features}.")
+        for field, pic in (
+            ("X-D", "S9(18) COMP-5"),
+            ("X-ISUM", "S9(18) COMP-5"),
+            ("X-C2", "S9(18) COMP-5"),
+            ("X-Q", "S9(18) COMP-5"),
+            ("X-R", "S9(18) COMP-5"),
+            ("X-IMPACT", "S9(9) COMP-5"),
+            ("X-GIVEN", "9"),
+            ("X-TAKEN", "9"),
+        ):
+            push(f"      10 {field:<14} PIC {pic}.")
+        out.extend(
+            _emit_value_table(
+                "X-NEG-CODE", f"X({code_width})", [_cobol_string(c) for c in neg_codes]
+            )
+        )
+        out.extend(
+            _emit_value_table(
+                "X-POS-CODE", f"X({code_width})", [_cobol_string(c) for c in pos_codes]
+            )
+        )
+        out.extend(_emit_value_table("X-ELIGIBLE", "9", [str(e) for e in eligible]))
+        push("01 REASONS.")
+        for slot in ("NEG", "POS"):
+            push(f"   05 REASON-{slot}-COUNT  PIC S9(4) COMP-5.")
+            push(f"   05 REASON-{slot} OCCURS {k}.")
+            push(f"      10 REASON-{slot}-CODE   PIC X({code_width}).")
+            push(f"      10 REASON-{slot}-IMPACT PIC S9(9) COMP-5.")
     push("01 FEATURE-INPUTS.")
     for name, original in zip(cobol_names, feature_names):
         push(f"   05 {name:<28} COMP-2 VALUE 0.  *> {original}")
@@ -200,6 +494,15 @@ def export_cobol(
                 push(f"    MOVE {_literal(float(value))} TO {name}")
             push("    PERFORM SCORE-ONE")
             push("    DISPLAY F-LATENT-INT ' ' FINAL-BAND ' ' F-PD-PPM")
+            if explain:
+                push("    DISPLAY 'R ' REASON-NEG-COUNT ' ' REASON-POS-COUNT")
+                for slot, tag in (("NEG", "N"), ("POS", "P")):
+                    push(f"    PERFORM VARYING X-J FROM 1 BY 1 UNTIL X-J > REASON-{slot}-COUNT")
+                    push(
+                        f"        DISPLAY '{tag} ' REASON-{slot}-CODE(X-J)"
+                        f" ' ' REASON-{slot}-IMPACT(X-J)"
+                    )
+                    push("    END-PERFORM")
         push("    GOBACK.")
     push("")
     push("SCORE-ONE.")
@@ -209,6 +512,8 @@ def export_cobol(
     push("    PERFORM CLAMP-AND-SCALE")
     push("    PERFORM ASSIGN-BAND")
     push("    PERFORM CALIBRATE-PD")
+    if explain:
+        push("    PERFORM EXPLAIN-ONE")
     push("    CONTINUE.")
     push("")
 
@@ -246,4 +551,12 @@ def export_cobol(
     push("")
 
     out.extend(_emit_calibration(artifact.get("calibration"), micro_scale))
+
+    if explain:
+        push("")
+        out.extend(_emit_explain(artifact, n_features, ratio, k))
+        for i, tree in enumerate(model["trees"]):
+            if _split_features(tree):
+                out.extend(_emit_tree_attribution(i + 1, tree, cobol_names, baseline))
+                push("")
     return "\n".join(out) + "\n"

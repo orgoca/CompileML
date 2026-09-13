@@ -405,7 +405,7 @@ Recently shipped: exact attribution aggregated per tree, so explaining a decisio
 
 The current priorities are:
 
-* emit reason codes from the COBOL and SQL exports, which per-tree attribution has made tractable ([#14](https://github.com/orgoca/CompileML/issues/14));
+* emit reason codes from the SQL export, as the COBOL export now does;
 * add Java and C exporters;
 * add an optional NumPy batch scorer.
 
