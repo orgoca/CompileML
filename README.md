@@ -401,11 +401,10 @@ src/compileml/runtime/
 
 ## Roadmap
 
-Shipped in 0.5: exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fair-lending audit in `compileml.fairness`.
+Recently shipped: exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fair-lending audit in `compileml.fairness` (0.5); exact drift decomposition, band calibration and baseline staleness in `compileml.monitor` (0.6).
 
 The current priorities are:
 
-* decompose score drift exactly, rather than reimplement PSI ([#9](https://github.com/orgoca/CompileML/issues/9));
 * complete calibrated-PD output in COBOL, then emit reason codes from the COBOL and SQL exports, which per-tree attribution has made tractable ([#14](https://github.com/orgoca/CompileML/issues/14));
 * add Java and C exporters;
 * add an optional NumPy batch scorer.
