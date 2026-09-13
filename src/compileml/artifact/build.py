@@ -40,6 +40,43 @@ def _band_edges_int(band_edges, scale: int) -> list[int]:
     return edges_int
 
 
+# How far past [0, 1] a squared-error whitebox plausibly overshoots on a skewed
+# probability target. Margins (log-odds) run far wider: a 5% base rate alone
+# sits near -2.9.
+_OVERSHOOT_EXCURSION = 0.5
+
+
+def _latent_range_message(outside: float, scores) -> str:
+    """Name the likely cause of out-of-range latents, not just the symptom.
+
+    The two causes need opposite responses. A regressor distilled onto
+    probabilities with a low base rate overshoots slightly below zero — the
+    artifact is fine and clamping handles it. A model whose outputs are
+    margins is on the wrong scale entirely and must be distilled first.
+    Telling a ``train_whitebox`` user to "distill first" sends them in a
+    circle.
+    """
+    lo, hi = float(np.min(scores)), float(np.max(scores))
+    excursion = max(-lo, hi - 1.0)
+    if excursion <= _OVERSHOOT_EXCURSION:
+        return (
+            f"{outside:.1%} of sample latents fall slightly outside [0, 1] before "
+            f"clamping (range {lo:.3f} to {hi:.3f}). That is the usual overshoot of a "
+            "squared-error whitebox distilled onto a skewed target, and clamping "
+            "handles it; the artifact is valid. Only if this model outputs margins "
+            "(log-odds) rather than probabilities does it need distilling with "
+            "train_whitebox first."
+        )
+    return (
+        f"{outside:.1%} of sample latents fall outside [0, 1] before clamping, "
+        f"ranging {lo:.3f} to {hi:.3f}. That spread looks like margin (log-odds) "
+        "output rather than probabilities, and the artifact contract expects "
+        "probability-like latents: distill the model with train_whitebox on "
+        "probabilities first. (A whitebox fitted to probabilities overshoots "
+        "[0, 1] only slightly.)"
+    )
+
+
 def build_artifact(
     model,
     feature_names,
@@ -169,12 +206,7 @@ def build_artifact(
         outside = float(np.mean((float_scores < 0.0) | (float_scores > 1.0)))
         quant_report["share_outside_unit_interval"] = outside
         if outside > 0.01:
-            warnings.warn(
-                f"{outside:.1%} of sample latents fall outside [0, 1] before clamping. "
-                "The artifact contract expects probability-like latents; distill "
-                "margin-space models first (train_whitebox).",
-                stacklevel=2,
-            )
+            warnings.warn(_latent_range_message(outside, float_scores), stacklevel=2)
 
     # --- calibration ---------------------------------------------------------
     if calibration is None and calibration_latent is not None:

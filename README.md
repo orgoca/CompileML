@@ -144,6 +144,8 @@ holds bit-for-bit on every row. `score_from_scorecard()` re-derives any producti
 
 Hand the CSV to a validator and they can reproduce production scores in a spreadsheet. Above depth 2 no clean scorecard exists, and the tool raises instead of approximating — the same boundary as exact attribution, for the same reason.
 
+Expect a depth-2 scorecard to be mostly interaction grids. A tree whose two splits use different features contributes a grid rather than a main effect, and boosting seldom spends both splits on one feature: the fairness notebook's 40-tree model on the 23-feature UCI panel compiles to 55 grids and no main effects at all. It is still exact, but it is not the one-table-per-feature card many validation teams expect. If yours does, compile at `max_depth=1` and measure the fidelity that costs with `sweep_whitebox`.
+
 ## What the artifact guarantees
 
 Given the same artifact and the same input values, CompileML produces the same governed integer outputs across supported runtimes.
@@ -338,6 +340,8 @@ On that data:
 
 It found two bugs, both fixed in 0.5.0: invalid SQL for a single-band artifact ([#40](https://github.com/orgoca/CompileML/issues/40), fixed by [@tote10](https://github.com/tote10)) and band builders emitting edges the build then rejected on low base rates ([#41](https://github.com/orgoca/CompileML/issues/41)).
 
+Its notes also recorded five usability observations, all addressed in 0.5.2: a latent-range warning that blamed margin-space models even for `train_whitebox` output; no pointer onward when certified banding finds a single band; a documented recalibration metadata key that did not match the one written; an undocumented macOS dependency of the XGBoost and LightGBM extras; and nothing warning that a depth-2 scorecard is mostly interaction grids.
+
 It did not exercise the COBOL export (no compiler was installed), determinism across operating systems (CI checks that separately), or anything released after 0.4.3.
 
 ## Citing
@@ -363,6 +367,8 @@ Optional teacher integrations:
 pip install compileml[xgboost]
 pip install compileml[lightgbm]
 ```
+
+On macOS both libraries load the OpenMP runtime. If importing either fails while loading its shared library, install it with `brew install libomp`. That is a requirement of XGBoost and LightGBM, not of CompileML, whose runtime needs neither.
 
 Visualization dependencies:
 

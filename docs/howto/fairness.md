@@ -112,8 +112,8 @@ neither.
     The second attempt was interaction share: main-effect points versus
     pairwise grid points, read off the scorecard. Exact, and useless on real
     artifacts. A depth-2 ensemble trained on the UCI panel produced **zero**
-    main effects and forty-seven interaction grids, because no tree split on
-    a single feature. The share is then 100% for everybody — a fact about the
+    main effects and fifty-five interaction grids, because no tree spent both
+    splits on a single feature — the worked example prints both counts. The share is then 100% for everybody — a fact about the
     model, not about any group.
 
     Concentration varies by row, so it survives contact with real artifacts.

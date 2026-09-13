@@ -197,6 +197,16 @@ spreadsheet.
 Above depth 2, `build_scorecard` raises instead of approximating — the same
 boundary as exact attribution, for the same reason.
 
+Expect a depth-2 scorecard to be **mostly interaction grids**. A tree whose
+two splits use different features contributes a grid rather than a main
+effect, and boosting seldom spends both splits on one feature. The fairness
+notebook's 40-tree model on the 23-feature UCI panel compiles to 55 grids and
+no main effects; an independent evaluation on fraud data found one main
+effect among 39 grids. The scorecard is still exact, but it is not the
+one-table-per-feature card many validation functions expect. If yours does,
+compile at `max_depth=1` — the classic form in the table above — and measure
+the fidelity it costs with `sweep_whitebox` before committing to it.
+
 ## Enforcing monotone directions
 
 A compiled scorecard with a bin where more delinquency scores *better* is a
