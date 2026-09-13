@@ -17,7 +17,7 @@ audit = FairnessAudit(
     labels={1: "Male", 2: "Female"},
     threshold_int=500,          # your cutoff, in display-scale latent units
     artifact=artifact, X=X_test,
-    protected_feature=None,     # name it only if the model actually uses it
+    protected_feature="SEX",    # its column, if the attribute is a model input
 )
 audit.compute_all()
 audit.print_summary()
@@ -69,16 +69,21 @@ one group. That is its own finding and it is invisible at Layer 1.
 gap by feature, exactly:
 
 ```
-mean group gap (half-micro) : -163,311.812611
-sum of per-feature gaps     : -163,311.812611
-residual                    :  0.000e+00
+comparison : Male minus Female
+mean gap   :      39,396.625742  (half-micro)
+sum of parts:     39,396.625742
+residual   :          0.000e+00
 ```
 
 Zero, not small. Because the artifact's attribution reconciles to the score
 with no residual at depth ≤ 2, the per-feature contributions to a group gap
-*sum to the gap*. A share above 100% is a genuine finding rather than an
-error — one driver widens the gap further than observed while others offset
-it — and that statement is unavailable from any decomposition whose parts do
+*sum to the gap*. The group means are exact rationals over integer sums, so
+that holds with `==` on any machine and in any row order; a float mean would
+leave a residual near 1e-11 whose sign depends on how the sums round.
+
+A share above 100% is a genuine finding rather than an error — one driver
+widens the gap further than observed while others offset it — and that
+statement is unavailable from any decomposition whose parts do
 not sum to the whole.
 
 This is what turns "the ratio is 0.91" into "36.9% of the gap is `PAY_1`",
@@ -131,10 +136,19 @@ by the same runtime that produced the decision. The audit is of disclosed
 reasons, not of a proxy for them.
 
 **§11 counterfactual.** Flip the protected attribute and measure band flips.
-When the attribute is not a model input the section reports itself
-inapplicable *positively* — "the model does not use it, so the test does not
-apply" — rather than silently skipping. That is the desired outcome and it
-belongs in the report.
+The section never silently skips, and its `status` keeps apart three outcomes
+that mean different things:
+
+- `flipped` — `protected_feature` names a model input. It is flipped and the
+  band movement is reported.
+- `not_an_input` — `protected_feature` names something the artifact does not
+  have. The model cannot be using it directly, and the section says so
+  *positively*: that is the desired outcome and it belongs in the report.
+- `not_named` — `protected_feature` is `None`. The audit was not told which
+  input, if any, is the attribute, so nothing is flipped, and the section
+  says plainly that this is **not** evidence the model ignores it. If a
+  column matches the protected attribute value for value, the reason names
+  it — on the UCI panel, `SEX`.
 
 ## A worked example
 

@@ -55,8 +55,10 @@ class FairnessAudit:
         artifact: Needed for §7, §8 and §11, which re-read the compiled model.
         X: Feature rows, needed for the same three sections.
         protected_feature: Name of the protected attribute *if it is a model
-            input*. Leave ``None`` when it is not — §11 then reports itself
-            inapplicable, which is the desired result.
+            input*. Leave ``None`` only when it is not. §11 cannot tell the
+            difference from ``None`` alone, so it reports that no input was
+            named and does not run — which is not evidence the model ignores
+            the attribute.
     """
 
     def __init__(
