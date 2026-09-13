@@ -9,7 +9,12 @@ integer pipeline bit-for-bit:
 - the display conversion is the spec §2.2 ``div_rha`` formula in integer
   ``COMPUTE`` (truncating division equals floor for non-negative values);
 - the band ladder uses strict ``<`` against the interior integer edges,
-  which is exactly ``bisect_right`` (spec §5).
+  which is exactly ``bisect_right`` (spec §5);
+- the calibrated PD walks the artifact's integer table with the same
+  first-match rule and ``div_rha`` interpolation as the runtime (spec §6).
+  The table's numerators are never negative — ``f_micro`` is strictly
+  increasing and ``pd_ppm`` non-decreasing, both enforced on load — so the
+  non-negative ``div_rha`` form is exact.
 
 Feature inputs are declared ``COMP-2`` (IEEE binary64 under GnuCOBOL and
 Enterprise COBOL with IEEE arithmetic). Threshold literals are emitted in
@@ -24,6 +29,10 @@ from __future__ import annotations
 import re
 
 LEAF = -2
+
+# Working-storage names the program declares itself. A feature whose
+# sanitized name would collide with one of these gets a suffix instead.
+RESERVED = {"F-ACCUM-MICRO", "F-LATENT-MICRO", "F-LATENT-INT", "F-PD-STEP", "F-PD-PPM"}
 
 
 def _cobol_name(name: str, used: set[str]) -> str:
@@ -75,26 +84,70 @@ def _emit_tree(tree: dict, names: list[str], indent: int) -> list[str]:
     return lines
 
 
+def _emit_calibration(calibration: dict | None, micro_scale: int) -> list[str]:
+    """The spec §6 calibration as one EVALUATE, mirroring the SQL export's CASE."""
+    lines = ["CALIBRATE-PD."]
+    if not calibration:
+        lines += [
+            "    *> no calibration table: div_rha(latent_micro * 1000000, micro_scale)",
+            "    COMPUTE F-PD-PPM =",
+            f"        (2 * F-LATENT-MICRO * 1000000 + {micro_scale}) / (2 * {micro_scale})",
+            "    CONTINUE.",
+        ]
+        return lines
+
+    f = [int(v) for v in calibration["f_micro"]]
+    pd = [int(v) for v in calibration["pd_ppm"]]
+    mode = calibration.get("mode", "linear_int")
+    lines += [
+        f"    *> spec 6: {len(f)}-point table, mode {mode}",
+        "    EVALUATE TRUE",
+        f"        WHEN F-LATENT-MICRO <= {f[0]}",
+        f"            MOVE {pd[0]} TO F-PD-PPM",
+    ]
+    for i in range(1, len(f)):
+        lines.append(f"        WHEN F-LATENT-MICRO < {f[i]}")
+        if mode == "step":
+            lines.append(f"            MOVE {pd[i - 1]} TO F-PD-PPM")
+            continue
+        delta, den = pd[i] - pd[i - 1], f[i] - f[i - 1]
+        # The quotient is stored before it is added, so no compiler's rules
+        # for fractional intermediates can move the rounding.
+        lines += [
+            "            COMPUTE F-PD-STEP =",
+            f"                (2 * {delta} * (F-LATENT-MICRO - {f[i - 1]}) + {den})"
+            f" / (2 * {den})",
+            f"            COMPUTE F-PD-PPM = {pd[i - 1]} + F-PD-STEP",
+        ]
+    lines += [
+        "        WHEN OTHER",
+        f"            MOVE {pd[-1]} TO F-PD-PPM",
+        "    END-EVALUATE",
+        "    CONTINUE.",
+    ]
+    return lines
+
+
 def export_cobol(
     artifact: dict,
     *,
     program_id: str = "CMLSCORE",
     driver_rows: list | None = None,
 ) -> str:
-    """Render the artifact's score + band pipeline as a COBOL program.
+    """Render the artifact's score, band and calibrated PD as a COBOL program.
 
     The generated program reads features from WORKING-STORAGE (integration
     point: MOVE caller values in, or adapt to a LINKAGE SECTION), then leaves
-    ``F-LATENT-INT`` (display-scale score) and ``FINAL-BAND`` populated.
+    ``F-LATENT-INT`` (display-scale score), ``FINAL-BAND`` and ``F-PD-PPM``
+    (calibrated PD, parts per million) populated.
 
     With ``driver_rows`` (a list of feature rows), the program becomes a
     parity harness instead: it scores every row and DISPLAYs
-    ``latent_int band`` one row per line — compile it, run it, and diff the
-    output against the Python runtime. CI does exactly that under GnuCOBOL.
+    ``latent_int band pd_ppm`` one row per line — compile it, run it, and diff
+    the output against the Python runtime. CI does exactly that under GnuCOBOL.
 
-    Scope note: this emits score, clamp, display conversion, and band
-    assignment — the mainframe decision path. Calibrated PDs and reason
-    codes remain runtime/SQL concerns.
+    Scope note: reason codes are not emitted yet; they come only from the
+    Python runtime (#14).
     """
     model = artifact["model"]
     micro_scale = int(model["micro_scale"])
@@ -104,7 +157,7 @@ def export_cobol(
     labels = [str(x) for x in artifact["bands"]["labels"]]
     feature_names = artifact["features"]["names"]
 
-    used: set[str] = set()
+    used: set[str] = set(RESERVED)
     cobol_names = [_cobol_name(n, used) for n in feature_names]
     label_width = max(len(x) for x in labels)
 
@@ -118,7 +171,7 @@ def export_cobol(
     push("IDENTIFICATION DIVISION.")
     push(f"PROGRAM-ID. {program_id}.")
     push("*> ------------------------------------------------------------")
-    push("*> CompileML decision artifact export (score + band).")
+    push("*> CompileML decision artifact export (score + band + PD).")
     push(f"*> artifact_hash: {artifact.get('artifact_hash', 'unknown')}")
     push(f"*> micro_scale: {micro_scale}   display scale: {scale}")
     push("*> Integer-exact: leaf values below are the artifact's integers.")
@@ -129,6 +182,8 @@ def export_cobol(
     push("01 F-LATENT-MICRO     PIC S9(15) COMP-5 VALUE 0.")
     push("01 F-LATENT-INT       PIC S9(9)  COMP-5 VALUE 0.")
     push(f"01 FINAL-BAND         PIC X({label_width})   VALUE SPACES.")
+    push("01 F-PD-STEP          PIC S9(9)  COMP-5 VALUE 0.")
+    push("01 F-PD-PPM           PIC S9(9)  COMP-5 VALUE 0.")
     push("01 FEATURE-INPUTS.")
     for name, original in zip(cobol_names, feature_names):
         push(f"   05 {name:<28} COMP-2 VALUE 0.  *> {original}")
@@ -144,7 +199,7 @@ def export_cobol(
             for name, value in zip(cobol_names, row):
                 push(f"    MOVE {_literal(float(value))} TO {name}")
             push("    PERFORM SCORE-ONE")
-            push("    DISPLAY F-LATENT-INT ' ' FINAL-BAND")
+            push("    DISPLAY F-LATENT-INT ' ' FINAL-BAND ' ' F-PD-PPM")
         push("    GOBACK.")
     push("")
     push("SCORE-ONE.")
@@ -153,6 +208,7 @@ def export_cobol(
         push(f"    PERFORM SCORE-TREE-{i + 1:04d}")
     push("    PERFORM CLAMP-AND-SCALE")
     push("    PERFORM ASSIGN-BAND")
+    push("    PERFORM CALIBRATE-PD")
     push("    CONTINUE.")
     push("")
 
@@ -187,4 +243,7 @@ def export_cobol(
     push(f"            MOVE '{labels[-1]}' TO FINAL-BAND")
     push("    END-EVALUATE")
     push("    CONTINUE.")
+    push("")
+
+    out.extend(_emit_calibration(artifact.get("calibration"), micro_scale))
     return "\n".join(out) + "\n"

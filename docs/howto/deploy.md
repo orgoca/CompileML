@@ -63,15 +63,18 @@ compileml export decision.json --target cobol --program-id CMLSCORE --out scorer
 
 A self-contained `>>SOURCE FORMAT FREE` program: the artifact's leaf integers
 verbatim (`ADD 21077 TO F-ACCUM-MICRO`), the spec's integer division formula in
-`COMPUTE`, and a strict-`<` `EVALUATE` band ladder. Compiles under GnuCOBOL and
-Enterprise COBOL 6+.
+`COMPUTE`, a strict-`<` `EVALUATE` band ladder, and the calibration table as a
+second `EVALUATE` that leaves the calibrated PD in `F-PD-PPM`. Compiles under
+GnuCOBOL and Enterprise COBOL 6+; CI compiles the export and checks latent, band
+and PD against the Python runtime row by row, for every calibration mode.
 
 - Feature inputs are `COMP-2` (IEEE binary64). For decimal-arithmetic targets,
   compile the artifact with `build_artifact(threshold_decimals=…)` so every
   runtime — Python included — compares the identical quantized thresholds
   ([spec §11](../ARTIFACT_SPEC.md)).
-- Scope: score + band (the mainframe decision path). Calibrated PDs and reason
-  codes are runtime/SQL concerns; a COBOL calibration section is on the roadmap.
+- Scope: score, band and calibrated PD. Reason codes are not emitted by either
+  export yet — they come only from the Python runtime
+  ([#14](https://github.com/orgoca/CompileML/issues/14) tracks adding them).
 
 ## Which surface for what
 
@@ -80,6 +83,6 @@ Enterprise COBOL 6+.
 | runtime `decide(explain=True)` | band, PD, exact reasons | decisioning API, adverse-action notices |
 | runtime `decide(explain=False)` | band, PD, latent | bulk pre-screening (no customer-facing decision) |
 | SQL export | band, PD, latent per row | warehouse batch, portfolio re-score |
-| COBOL export | band, latent | core-banking / mainframe rails |
+| COBOL export | band, PD, latent | core-banking / mainframe rails |
 
 Whatever the surface, the integers agree — that's the point.
