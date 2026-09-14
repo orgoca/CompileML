@@ -10,9 +10,13 @@
 
 ## Why this exists
 
-Risk teams are usually offered a bad choice.
+CompileML started in credit risk, where two schools of thought meet and rarely agree.
 
-A traditional scorecard is transparent, reproducible, and deploys anywhere, but leaves predictive power on the table. A tree ensemble predicts better, then arrives with a Python environment, a serving stack, post-hoc explanations, and a model no validator can reproduce independently.
+Risk practitioners build scorecards. A scorecard is transparent, reproducible, and deploys anywhere; it is trusted because a validator can check every point by hand. It also leaves predictive power on the table. Data scientists build tree ensembles. An ensemble predicts better, then arrives with a Python environment, a serving stack, post-hoc explanations, and a model no validator can reproduce independently.
+
+Each side is right about what the other gives up. That leaves teams a bad choice: the model they can defend, or the model that performs.
+
+The choice is not unique to credit. It appears wherever a model makes a decision about an individual case and has to answer for it — to a regulator, an auditor, a customer, a clinician — or has to run somewhere the data-science stack does not. Fraud and anti-money-laundering alerts, insurance underwriting and claims, eligibility screening and clinical decision support all meet it. The details differ; the choice is the same.
 
 CompileML removes that choice.
 
@@ -28,7 +32,7 @@ That buys three things, and I would not trade any one of them for the other two:
 
 The benchmark puts the cost at about 2% of the teacher's Gini. In exchange, at whitebox depth two or less, every decision reconstructs exactly from a printed scorecard table, and every explanation adds back to the production score with nothing left over.
 
-CompileML started in credit risk, where a lender must explain every adverse decision, reproduce it for a validator, and run it on systems that predate Python, so none of the three can be traded away. They matter wherever a model makes a decision about an individual case and has to answer for it: fraud and anti-money-laundering alerts, insurance underwriting and claims, eligibility screening, clinical decision support. The examples here come from credit, where the project began. [Where it fits](docs/concepts/where-it-fits.md) maps the vocabulary to other domains and says where the fit is weaker.
+The examples in this repository come from credit, where the project began and where lenders must explain every adverse decision, reproduce it for a validator, and often run it on systems that predate Python. [Where it fits](docs/concepts/where-it-fits.md) maps the vocabulary to other domains and says where the fit is weaker.
 
 ## Quick example
 

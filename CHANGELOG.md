@@ -14,10 +14,12 @@ inside each artifact (`schema_version`).
   be explained, reproduced, audited or run outside Python — which domains fit
   strongly or weakly and why, and a table reading the library's vocabulary
   (`pd`, bands, reason codes, `risk_increasing`) in fraud, clinical triage and
-  churn terms. No code or artifact names change. The README, docs home,
-  fairness and reason-code guides gain a sentence each; the fairness guide
-  keeps lending as its worked lens and says where its regulatory references
-  come from.
+  churn terms. No code or artifact names change. The README's *Why this
+  exists* now opens with the credit origin — risk practitioners and data
+  scientists each right about what the other gives up — and states the choice
+  in terms any domain facing it will recognise. The docs home, fairness and
+  reason-code guides gain a sentence each; the fairness guide keeps lending as
+  its worked lens and says where its regulatory references come from.
 
 ### Added
 - `compileml.tune.retention_by_segment`
