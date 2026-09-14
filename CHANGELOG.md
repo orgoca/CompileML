@@ -7,19 +7,26 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
-### Changed
-- Documentation reads beyond credit risk without hiding where the project
-  started. A new *Where it fits* page states the origin in credit, the general
-  boundary — tabular models making decisions about individual cases that must
-  be explained, reproduced, audited or run outside Python — which domains fit
-  strongly or weakly and why, and a table reading the library's vocabulary
-  (`pd`, bands, reason codes, `risk_increasing`) in fraud, clinical triage and
-  churn terms. No code or artifact names change. The README's *Why this
-  exists* now opens with the credit origin — risk practitioners and data
-  scientists each right about what the other gives up — and states the choice
-  in terms any domain facing it will recognise. The docs home, fairness and
-  reason-code guides gain a sentence each; the fairness guide keeps lending as
-  its worked lens and says where its regulatory references come from.
+## [0.8.0] - 2026-09-13
+
+What compilation cost where decisions are made — and what to do about it.
+
+A portfolio retention figure is an average, dominated by the easy
+separations, while a decision is made in the narrow band of risk where a
+segment's cutoff sits. `retention_by_segment` reports, per segment, what
+compiling cost there: retention, agreement with the teacher across a PD
+cutoff range, and whether the band ladder can hold a cutoff inside that
+range. When one segment pays, `sample_weight` directs the whitebox's budget
+toward it, and the tuning guide says when that works and when a segment needs
+its own model instead.
+
+The documentation now reads beyond credit risk without hiding where the
+project started, and GitHub Discussions is open for questions, design debates
+and results on your own data.
+
+A minor release because `retention_by_segment`, `segments` and
+`sample_weight` are new public API. The runtime, exporters and artifact schema
+are unchanged.
 
 ### Added
 - `compileml.tune.retention_by_segment`
@@ -48,6 +55,18 @@ inside each artifact (`schema_version`).
   calibration table, whose emitted PD is only its raw score rescaled.
 
 ### Changed
+- Documentation reads beyond credit risk without hiding where the project
+  started. A new *Where it fits* page states the origin in credit, the general
+  boundary — tabular models making decisions about individual cases that must
+  be explained, reproduced, audited or run outside Python — which domains fit
+  strongly or weakly and why, and a table reading the library's vocabulary
+  (`pd`, bands, reason codes, `risk_increasing`) in fraud, clinical triage and
+  churn terms. No code or artifact names change. The README's *Why this
+  exists* now opens with the credit origin — risk practitioners and data
+  scientists each right about what the other gives up — and states the choice
+  in terms any domain facing it will recognise. The docs home, fairness and
+  reason-code guides gain a sentence each; the fairness guide keeps lending as
+  its worked lens and says where its regulatory references come from.
 - GitHub Discussions is open for questions, design discussions and results on
   your own data; the new-issue page links to it, and CONTRIBUTING says what
   goes where. CONTRIBUTING's starting points no longer list work that has
