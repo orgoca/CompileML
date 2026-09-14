@@ -48,6 +48,7 @@ nav:
   - Home: index.md
   - Quickstart: quickstart.md
   - Concepts:
+      - Where it fits: concepts/where-it-fits.md
       - Determinism: concepts/determinism.md
       - Exact attribution: concepts/attribution.md
       - Risk bands: concepts/bands.md
@@ -58,7 +59,7 @@ nav:
       - Zero-churn recalibration: howto/recalibrate.md
       - Deploy (runtime, SQL, COBOL): howto/deploy.md
       - Validate before deploying: howto/validate.md
-      - Audit for fair lending: howto/fairness.md
+      - Audit for fairness: howto/fairness.md
       - Monitor a deployed artifact: howto/monitor.md
   - FAQ: faq.md
   - Reference:

@@ -28,6 +28,8 @@ That buys three things, and I would not trade any one of them for the other two:
 
 The benchmark puts the cost at about 2% of the teacher's Gini. In exchange, at whitebox depth two or less, every decision reconstructs exactly from a printed scorecard table, and every explanation adds back to the production score with nothing left over.
 
+CompileML started in credit risk, where a lender must explain every adverse decision, reproduce it for a validator, and run it on systems that predate Python, so none of the three can be traded away. They matter wherever a model makes a decision about an individual case and has to answer for it: fraud and anti-money-laundering alerts, insurance underwriting and claims, eligibility screening, clinical decision support. The examples here come from credit, where the project began. [Where it fits](docs/concepts/where-it-fits.md) maps the vocabulary to other domains and says where the fit is weaker.
+
 ## Quick example
 
 Train however you want. The example below uses a strong model as a teacher and distills it into a shallow whitebox:
@@ -387,6 +389,7 @@ src/compileml/runtime/
 ## Documentation
 
 * [Quickstart](docs/quickstart.md)
+* [Where it fits](docs/concepts/where-it-fits.md)
 * [FAQ](docs/faq.md)
 * [Tuning the compilation](docs/howto/tuning.md)
 * [Artifact specification](docs/ARTIFACT_SPEC.md)
@@ -394,14 +397,14 @@ src/compileml/runtime/
 * [Recalibration without band churn](docs/howto/recalibrate.md)
 * [Deploying to Python, SQL, and COBOL](docs/howto/deploy.md)
 * [Validation framework](docs/howto/validate.md)
-* [Fair-lending audit](docs/howto/fairness.md)
+* [Fairness audit](docs/howto/fairness.md)
 * [Monitoring a deployed artifact](docs/howto/monitor.md)
 * [Visualization](docs/howto/visualize.md)
 * [Executable notebooks](examples/)
 
 ## Roadmap
 
-Recently shipped: exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fair-lending audit in `compileml.fairness` (0.5); exact drift decomposition, band calibration and baseline staleness in `compileml.monitor` (0.6).
+Recently shipped: exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fairness audit in `compileml.fairness` (0.5); exact drift decomposition, band calibration and baseline staleness in `compileml.monitor` (0.6).
 
 The current priorities are:
 

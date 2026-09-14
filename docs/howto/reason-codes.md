@@ -5,6 +5,10 @@ customer reads is **your** content: only the institution can turn
 `BILLS_PAID_LATE, impact +56` into a sentence that is accurate, compliant, and
 humane. This page is the contract for supplying that content.
 
+In lending these are adverse-action reasons; in fraud, the reasons an alert
+fired; in triage, why a case was flagged. The mechanism is the same, and the
+examples here are lending's.
+
 ## The dictionary
 
 One entry per feature, keyed exactly as the feature appears in

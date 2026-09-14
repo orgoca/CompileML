@@ -9,7 +9,7 @@ Everyone taking part is expected to follow the
 ## Where to start
 
 The [open issues](https://github.com/orgoca/CompileML/issues) are written to be
-picked up: each one states the problem, why it matters in a regulated lending
+picked up: each one states the problem, why it matters in a regulated decision
 context, a proposed approach, acceptance criteria, and the files involved.
 
 Two of them are, in my view, what stands between this being interesting
@@ -17,7 +17,7 @@ infrastructure and something a risk function could actually adopt:
 
 | | |
 |---|---|
-| [#16](https://github.com/orgoca/CompileML/issues/16) | **Champion/challenger.** Replacing a model means answering who moves, by how much, and why. Both artifacts are hashed and exactly attributed, so the comparison can be exact and reproducible — the same decomposition that powers fair-lending and drift reports, applied across two artifacts instead of two populations. |
+| [#16](https://github.com/orgoca/CompileML/issues/16) | **Champion/challenger.** Replacing a model means answering who moves, by how much, and why. Both artifacts are hashed and exactly attributed, so the comparison can be exact and reproducible — the same decomposition that powers fairness and drift reports, applied across two artifacts instead of two populations. |
 | [#39](https://github.com/orgoca/CompileML/issues/39) | **A scorecard base plus a residual whitebox.** On one large portfolio a plain WOE logistic regression outscored the compiled whitebox, and boosting on the logistic model's residual beat both. The representation already exists; what the issue needs before any spec change is evidence from a second dataset — which anyone with a real portfolio can supply. |
 
 Smaller entry points: [#18](https://github.com/orgoca/CompileML/issues/18)

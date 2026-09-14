@@ -8,6 +8,12 @@ bands, and reason codes — into one hashed JSON artifact that produces the same
 integers on a Python laptop, in a SQL warehouse, and in a generated COBOL
 program.
 
+It began as a credit-risk tool, and the examples throughout these docs come
+from credit. The same primitives apply wherever a model makes a decision about
+an individual case and has to explain and reproduce it — fraud, insurance,
+eligibility, clinical decision support. [Where it fits](concepts/where-it-fits.md)
+maps the vocabulary and says where the fit is weaker.
+
 ```
 model  ──compile──►  decision.json  ──runs on──►  stdlib Python │ SQL │ COBOL
                      (hashed, versioned)          same integers everywhere
@@ -16,9 +22,10 @@ model  ──compile──►  decision.json  ──runs on──►  stdlib Pyt
 ## Where to start
 
 - New here → [Quickstart](quickstart.md)
+- Not in lending? → [Where it fits](concepts/where-it-fits.md)
 - Want the exact rules → [Artifact specification](ARTIFACT_SPEC.md)
 - "Why should I believe the determinism claim?" → [Determinism](concepts/determinism.md)
-- Writing adverse-action notices → [Reason codes](howto/reason-codes.md)
+- Writing reason codes — adverse-action notices, alert reasons → [Reason codes](howto/reason-codes.md)
 - Model risk / validation team → [Validate before deploying](howto/validate.md)
 
 ## The design in one paragraph

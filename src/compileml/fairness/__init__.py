@@ -1,4 +1,4 @@
-"""Fair-lending audit over compiled decisions.
+"""Fairness audit over compiled decisions, with lending as the worked example.
 
 Three layers, eleven sections: what decisions were made, how well the model
 predicts per group, and how it behaves locally. The first two layers are

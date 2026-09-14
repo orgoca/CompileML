@@ -33,7 +33,7 @@ raw score moved by Δ between the reference and current populations, and here
 are per-feature shifts that sum to Δ.
 
 The direction is always **current minus reference**. The report has the same
-shape as the fair-lending audit's §6 — `mean_gap_half_micro`,
+shape as the fairness audit's §6 — `mean_gap_half_micro`,
 `sum_of_feature_gaps`, `residual`, `by_feature` — because it is the same
 arithmetic: integer sums and exact rational means, so `residual` is `0.0` and
 the parts equal the whole with `==`, on any machine and in any row order.
