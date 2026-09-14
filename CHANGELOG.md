@@ -7,6 +7,18 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Changed
+- Documentation reads beyond credit risk without hiding where the project
+  started. A new *Where it fits* page states the origin in credit, the general
+  boundary — tabular models making decisions about individual cases that must
+  be explained, reproduced, audited or run outside Python — which domains fit
+  strongly or weakly and why, and a table reading the library's vocabulary
+  (`pd`, bands, reason codes, `risk_increasing`) in fraud, clinical triage and
+  churn terms. No code or artifact names change. The README, docs home,
+  fairness and reason-code guides gain a sentence each; the fairness guide
+  keeps lending as its worked lens and says where its regulatory references
+  come from.
+
 ### Added
 - `compileml.tune.retention_by_segment`
   ([#12](https://github.com/orgoca/CompileML/issues/12)): what compilation cost

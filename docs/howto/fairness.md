@@ -1,9 +1,16 @@
-# Audit a compiled model for fair lending
+# Audit a compiled model for fairness
 
 `compileml.fairness` runs a three-layer audit over decisions the artifact
 already made. It produces evidence a validator can inspect. **It does not
 certify compliance with ECOA, Regulation B, or anything else**, and it is
 written so that it cannot be mistaken for doing so.
+
+The metrics apply to any decision made about people — lending, insurance,
+eligibility, triage. The examples and regulatory references on this page are
+lending's, where the module began: ECOA and Regulation B in the United States,
+and the four-fifths window, a rule of thumb that comes from US
+employment-selection guidance. Other domains have their own frameworks, and
+the audit certifies none of them.
 
 ```python
 from compileml.fairness import FairnessAudit
