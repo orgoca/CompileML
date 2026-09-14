@@ -34,6 +34,7 @@ def train_whitebox(
     loss: str = "squared_error",
     monotone_constraints=None,
     teacher_latent=None,
+    sample_weight=None,
 ):
     """Fit a whitebox GBM to a target.
 
@@ -52,6 +53,17 @@ def train_whitebox(
     carrying column names). Any nonzero sign switches
     the backend to ``HistGradientBoostingRegressor``; ``None`` (or all
     zeros) keeps the classic ``GradientBoostingRegressor``.
+
+    ``sample_weight`` — one non-negative weight per row — tells the fit where
+    fidelity matters. A whitebox has a fixed budget and, unweighted, spends
+    it where most of the squared error is: the largest segment and the busiest
+    part of the score range. Up-weighting a segment, or the rows near its
+    cutoff range, moves that budget; other segments pay for it, so re-check
+    them with :func:`~compileml.tune.retention_by_segment`. Weighting changes
+    how the model ranks, not the PD: calibration is fitted afterwards on
+    outcomes. The returned fidelity metrics stay unweighted. Weighting cannot
+    create an effect depth 2 cannot express — a segment-only interaction is
+    three-way — see the tuning guide.
     """
     if teacher_latent is not None:
         if target is not None:
@@ -76,6 +88,13 @@ def train_whitebox(
 
     X_arr = np.asarray(X, dtype=float)
     y = np.asarray(target, dtype=float).reshape(-1)
+    weights = None
+    if sample_weight is not None:
+        weights = np.asarray(sample_weight, dtype=float).reshape(-1)
+        if weights.shape[0] != y.shape[0]:
+            raise ValueError("sample_weight must have one weight per row")
+        if (weights < 0).any() or not np.isfinite(weights).all() or weights.sum() <= 0:
+            raise ValueError("sample_weight must be finite, non-negative, and not all zero")
     feature_names = list(X.columns) if hasattr(X, "columns") else None
     cst = normalize_constraints(monotone_constraints, X_arr.shape[1], feature_names=feature_names)
     if cst is not None:
@@ -97,7 +116,7 @@ def train_whitebox(
             random_state=random_state,
             loss=loss,
         )
-    model.fit(X_arr, y)
+    model.fit(X_arr, y, sample_weight=weights)
 
     y_hat = np.clip(model.predict(X_arr), 0.0, 1.0)
     metrics = {

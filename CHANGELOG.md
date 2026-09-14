@@ -7,6 +7,32 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- `compileml.tune.retention_by_segment`
+  ([#12](https://github.com/orgoca/CompileML/issues/12)): what compilation cost
+  where each segment's decisions are made. Per segment it reports retention on
+  the segment's own rows and, given a PD cutoff range, decision agreement with
+  the teacher at equal approval volume at every cutoff across the range — the
+  share of applicants decided differently and the bad rate each approves —
+  and how many band edges fall inside the range, since a cutoff can only sit
+  on one. It names the worst segment, so an average cannot hide one.
+
+  Ranges, not cutpoints: a cutpoint needs its own study, and a range is enough
+  to show the artifact is sound anywhere that study could land. Ranges are
+  report inputs and never enter the hashed artifact.
+- `sweep_whitebox(..., segments=...)` adds per-segment retention and
+  `worst_segment` to every configuration.
+- `train_whitebox(..., sample_weight=...)`, passed through by
+  `sweep_whitebox`, to direct a whitebox's fixed budget toward a segment or
+  toward rows near its cutoff range. The tuning guide separates the gap
+  weighting fixes from the one it cannot: on synthetic data a starved 10%
+  segment went from 10.1% to 87.3% retention while the rest fell from 97.8%
+  to 91.3%, but a segment-only interaction — three-way, beyond depth 2 —
+  moved only from 73.0% to 75.9%, where its own artifact reached 79.3%.
+  Weighted artifacts stay exact.
+- `retention_by_segment` refuses cutoff ranges on an artifact without a
+  calibration table, whose emitted PD is only its raw score rescaled.
+
 ## [0.7.1] - 2026-09-13
 
 Documentation only — no change to runtime or export code, no API or
