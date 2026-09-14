@@ -33,6 +33,12 @@ inside each artifact (`schema_version`).
 - `retention_by_segment` refuses cutoff ranges on an artifact without a
   calibration table, whose emitted PD is only its raw score rescaled.
 
+### Changed
+- GitHub Discussions is open for questions, design discussions and results on
+  your own data; the new-issue page links to it, and CONTRIBUTING says what
+  goes where. CONTRIBUTING's starting points no longer list work that has
+  shipped (#12, #14, #17).
+
 ## [0.7.1] - 2026-09-13
 
 Documentation only — no change to runtime or export code, no API or
