@@ -408,7 +408,12 @@ src/compileml/runtime/
 
 ## Roadmap
 
-Recently shipped: exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fairness audit in `compileml.fairness` (0.5); exact drift decomposition, band calibration and baseline staleness in `compileml.monitor` (0.6).
+Recently shipped:
+
+* exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fairness audit in `compileml.fairness` (0.5);
+* exact drift decomposition, band calibration and baseline staleness in `compileml.monitor` (0.6);
+* the calibrated PD and reason codes from the COBOL and SQL exports (0.7);
+* retention by segment and across PD cutoff ranges, and weighting a whitebox toward the segment that pays (0.8).
 
 The current priorities are:
 
