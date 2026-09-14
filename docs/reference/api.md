@@ -38,6 +38,8 @@
 
 ::: compileml.tune.sweep_bands
 
+::: compileml.tune.retention_by_segment
+
 ## Scorecard
 
 ::: compileml.scorecard.build_scorecard

@@ -38,6 +38,7 @@ from compileml.compile.extract import extract_trees
 from compileml.compile.quantize import quantize_model
 from compileml.reference.woe import reference_gini as _reference_gini
 from compileml.runtime.explain import contributions_half_micro
+from compileml.tune.segments import segment_retention
 
 
 def sweep_whitebox(
@@ -56,6 +57,7 @@ def sweep_whitebox(
     monotone_constraints=None,
     reference=None,
     explain_timing_rows: int = 3,
+    segments=None,
 ) -> list[dict]:
     """Grid-sweep whitebox capacity; measure what each configuration buys.
 
@@ -87,6 +89,13 @@ def sweep_whitebox(
     adds ``reference_gini`` / ``gini_vs_reference_pct`` / ``beats_reference``
     to every row. Reporting teacher retention without it warns: a ceiling
     alone cannot tell you the whitebox is losing to a logistic regression.
+
+    ``segments`` — a label per *evaluation* row (the holdout when one is
+    given) — adds per-segment retention to every row, plus ``worst_segment``
+    and ``worst_segment_retention_pct``, so a portfolio average cannot hide a
+    segment that paid for the compression. Decision agreement across a
+    segment's cutoff range needs a calibrated, banded artifact, so it lives in
+    :func:`~compileml.tune.retention_by_segment` rather than here.
     """
     X_arr = np.asarray(X, dtype=float)
     y_arr = np.asarray(y, dtype=int).reshape(-1)
@@ -119,6 +128,15 @@ def sweep_whitebox(
             stacklevel=2,
         )
     baseline = np.median(X_arr, axis=0)
+
+    groups = None
+    if segments is not None:
+        groups = np.asarray([str(s) for s in np.asarray(segments).reshape(-1)])
+        if groups.shape[0] != len(y_eval):
+            raise ValueError(
+                "segments must have one label per evaluation row "
+                "(X_val when a holdout is given, otherwise X)"
+            )
 
     rows = []
     for depth in depth_grid:
@@ -180,7 +198,31 @@ def sweep_whitebox(
                         "in_sample": in_sample,
                     }
                 )
+                if groups is not None:
+                    rows[-1].update(_segment_columns(groups, y_eval, t_eval, latent_eval))
     return rows
+
+
+def _segment_columns(groups, y_eval, t_eval, latent_eval) -> dict:
+    per = {}
+    for label in sorted(set(groups.tolist())):
+        m = groups == label
+        if t_eval is not None:
+            entry = segment_retention(y_eval[m], t_eval[m], latent_eval[m])
+        else:
+            entry = segment_retention(y_eval[m], latent_eval[m], latent_eval[m])
+            entry["teacher_gini"] = entry["gini_retention_pct"] = None
+            entry["spearman_vs_teacher"] = None
+        per[label] = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in entry.items()}
+    retained = {
+        k: v["gini_retention_pct"] for k, v in per.items() if v["gini_retention_pct"] is not None
+    }
+    worst = min(retained, key=lambda k: retained[k]) if retained else None
+    return {
+        "segments": per,
+        "worst_segment": worst,
+        "worst_segment_retention_pct": retained[worst] if worst is not None else None,
+    }
 
 
 def sweep_bands(

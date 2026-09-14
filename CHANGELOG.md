@@ -7,6 +7,22 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- `compileml.tune.retention_by_segment`
+  ([#12](https://github.com/orgoca/CompileML/issues/12)): what compilation cost
+  where each segment's decisions are made. Per segment it reports retention on
+  the segment's own rows and, given a PD cutoff range, decision agreement with
+  the teacher at equal approval volume at every cutoff across the range — the
+  share of applicants decided differently and the bad rate each approves —
+  and how many band edges fall inside the range, since a cutoff can only sit
+  on one. It names the worst segment, so an average cannot hide one.
+
+  Ranges, not cutpoints: a cutpoint needs its own study, and a range is enough
+  to show the artifact is sound anywhere that study could land. Ranges are
+  report inputs and never enter the hashed artifact.
+- `sweep_whitebox(..., segments=...)` adds per-segment retention and
+  `worst_segment` to every configuration.
+
 ## [0.7.1] - 2026-09-13
 
 Documentation only — no change to runtime or export code, no API or
