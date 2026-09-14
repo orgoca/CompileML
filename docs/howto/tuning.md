@@ -226,6 +226,74 @@ retention only. Ranges are PD as fractions, so `(0.02, 0.06)` rather than
 segment that pays most rather than by the average. The cutoff-range checks
 need a calibrated, banded artifact, so they run on the one you build.
 
+### When one segment pays
+
+A whitebox is trained to copy the teacher everywhere, on average. It spends
+its fixed budget where most of the squared error is — the largest segment and
+the busiest part of the score range — and nothing tells it where a small
+segment's decisions are made. A segment with low retention has one of three
+problems, and they need different answers.
+
+| Cause | How it shows | What helps |
+|---|---|---|
+| **Budget** — too little capacity reaches the segment | its retention climbs as `trees_grid` grows | more trees, or weighting |
+| **Structure** — the segment differs in a way depth 2 cannot express | its retention plateaus however many trees | its own artifact |
+| **Data** — few rows or defaults in the segment | the teacher's own Gini there is weak or unstable | check the floor, not the teacher |
+
+Sweep with `segments=` to tell budget from structure. The structural case has a
+precise cause: depth-2 trees express pairwise effects exactly, so "this
+feature matters differently for this segment" (segment × feature) is
+reachable, but "these two features interact only in this segment"
+(segment × A × B) is three-way, and no number of depth-2 trees represents it.
+
+In order of cost:
+
+1. **More trees** — helps a budget gap, at a linear cost, with exactness
+   untouched.
+2. **Make the segment an input** — a segment indicator lets depth 2 express
+   segment-specific effects of single features. It cannot reach a
+   segment-specific interaction.
+3. **Weight the fit** toward the segment, and if you like toward rows whose
+   teacher probability sits near the segment's cutoff range:
+
+   ```python
+   weights = np.where(segment == "thin_file", 5.0, 1.0)
+   near = (segment == "thin_file") & (teacher >= 0.05) & (teacher <= 0.25)
+   weights[near] *= 2.0
+   model, _ = train_whitebox(X, teacher, n_estimators=40, sample_weight=weights)
+   ```
+
+   How much weight, and how wide "near" is, are modelling judgements, which is
+   why they are not defaults. Weighting moves the budget rather than creating
+   it, so re-check every segment afterwards. It changes how the model ranks,
+   not the PD — calibration is fitted afterwards on outcomes — and the
+   artifact stays exact.
+4. **Give the segment its own artifact** — the whole budget, its own
+   calibration, and its own band ladder, which also fixes a ladder with no edge
+   in the segment's range. This is the strongest answer to a structural gap,
+   and the one with a governance cost: two artifacts, and routing between them
+   that must itself be auditable
+   ([#13](https://github.com/orgoca/CompileML/issues/13)).
+
+Do not raise depth to 3 to reach the three-way effect: it gives up exact
+attribution and the scorecard, and a segment with low retention is often the
+one receiving the most adverse-action notices.
+
+What the levers did on synthetic data built for each case (a 10% segment,
+depth 2, holdout retention of the small segment):
+
+| Gap | Unweighted | Segment weighted ×5 | Own artifact |
+|---|---:|---:|---:|
+| Budget — the segment has its own drivers | 10.1% | 87.3%, while the other segment fell from 97.8% to 91.3% | — |
+| Structure — a segment-only interaction | 73.0% | 75.9% | 79.3% |
+
+Weighting rescued a starved segment and charged the rest for it; it barely
+moved a structural gap, where a separate artifact did better. Finally, low
+retention is relative to the teacher. If a plain logistic regression matches
+the teacher on that segment (`reference=`), the gap is not compression, and a
+scorecard base with a residual correction
+([#39](https://github.com/orgoca/CompileML/issues/39)) is the better lever.
+
 ## Producing a scorecard
 
 At depth ≤ 2 the artifact *is* a points-based scorecard — exactly, not as an

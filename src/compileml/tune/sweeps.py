@@ -58,6 +58,7 @@ def sweep_whitebox(
     reference=None,
     explain_timing_rows: int = 3,
     segments=None,
+    sample_weight=None,
 ) -> list[dict]:
     """Grid-sweep whitebox capacity; measure what each configuration buys.
 
@@ -96,6 +97,10 @@ def sweep_whitebox(
     segment that paid for the compression. Decision agreement across a
     segment's cutoff range needs a calibrated, banded artifact, so it lives in
     :func:`~compileml.tune.retention_by_segment` rather than here.
+
+    ``sample_weight`` (one per training row) is passed to every fit, so a
+    weighted sweep beside an unweighted one shows what moving the budget buys
+    one segment and costs the others.
     """
     X_arr = np.asarray(X, dtype=float)
     y_arr = np.asarray(y, dtype=int).reshape(-1)
@@ -156,6 +161,7 @@ def sweep_whitebox(
                         learning_rate=learning_rate,
                         random_state=random_state,
                         monotone_constraints=monotone_constraints,
+                        sample_weight=sample_weight,
                     )
                 latent_eval = np.clip(model.predict(X_eval), 0.0, 1.0)
                 gini = 2 * float(roc_auc_score(y_eval, latent_eval)) - 1

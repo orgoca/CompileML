@@ -161,3 +161,86 @@ def test_sweep_names_the_worst_segment(data):
             segments=segment[:10],
             reference=0.5,
         )
+
+
+# --------------------------------------------- acting on it: sample_weight
+@pytest.fixture(scope="module")
+def starved():
+    """A 10% segment driven by its own features: a budget gap, not a structural one."""
+    rng = np.random.default_rng(11)
+    X = rng.standard_normal((12_000, 6))
+    thin = X[:, 5] > 1.28
+    logit = np.where(thin, 1.3 * X[:, 2] - 1.1 * X[:, 3] - 1.0, 1.2 * X[:, 0] - 0.8 * X[:, 1] - 2.0)
+    teacher = 1 / (1 + np.exp(-logit))
+    y = (rng.random(len(X)) < teacher).astype(int)
+    return X, y, teacher, np.where(thin, "thin_file", "thick_file")
+
+
+def test_weighting_moves_the_budget_to_a_starved_segment_and_others_pay(starved):
+    X, y, teacher, segment = starved
+    tr, te = slice(0, 8000), slice(8000, None)
+
+    def sweep(weights):
+        (row,) = sweep_whitebox(
+            X[tr],
+            teacher[tr],
+            y[tr],
+            trees_grid=(15,),
+            depth_grid=(2,),
+            X_val=X[te],
+            y_val=y[te],
+            teacher_latent_val=teacher[te],
+            segments=segment[te],
+            sample_weight=weights,
+            reference=0.5,
+        )
+        return row["segments"]
+
+    plain = sweep(None)
+    weighted = sweep(np.where(segment[tr] == "thin_file", 5.0, 1.0))
+    assert (
+        weighted["thin_file"]["gini_retention_pct"] > plain["thin_file"]["gini_retention_pct"] + 30
+    )
+    # The budget moved; it was not created. The other segment pays.
+    assert weighted["thick_file"]["gini_retention_pct"] < plain["thick_file"]["gini_retention_pct"]
+
+
+def test_a_weighted_whitebox_is_still_exact(starved):
+    X, y, teacher, segment = starved
+    weights = np.where(segment == "thin_file", 5.0, 1.0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model, _ = train_whitebox(
+            X, teacher, n_estimators=15, random_state=0, sample_weight=weights
+        )
+        latent = np.clip(model.predict(X), 0, 1)
+        artifact = build_artifact(
+            model,
+            [f"f{i}" for i in range(6)],
+            np.median(X, axis=0),
+            monotone_quantile_bands(latent, y, n_bands=8),
+            calibration_latent=latent,
+            calibration_y=y,
+        )
+    assert artifact["runtime"]["exact_attribution"] is True
+    for row in X[:50]:
+        assert decide(artifact, [float(v) for v in row])["attribution_residual_half_micro"] == 0
+
+
+def test_sample_weight_is_validated(starved):
+    X, _, teacher, _ = starved
+    with pytest.raises(ValueError, match="one weight per row"):
+        train_whitebox(X, teacher, sample_weight=np.ones(10))
+    with pytest.raises(ValueError, match="non-negative"):
+        train_whitebox(X, teacher, sample_weight=-np.ones(len(X)))
+
+
+def test_cutoff_ranges_refuse_an_uncalibrated_artifact(data):
+    import copy
+
+    artifact, X, y, teacher, segment = data
+    raw = copy.deepcopy(artifact)
+    raw["calibration"] = None
+    with pytest.raises(ValueError, match="no calibration table"):
+        retention_by_segment(raw, teacher, X, y, cutoff_ranges=(0.05, 0.1))
+    retention_by_segment(raw, teacher, X, y, segments=segment)  # retention alone is fine

@@ -158,7 +158,9 @@ def retention_by_segment(
     segment. ``cutoff_ranges`` is PD as fractions: a mapping of segment label
     to ``(low, high)``, or a single ``(low, high)`` for every segment. A
     segment without a range gets retention only. Use holdout rows — in-sample
-    retention flatters every artifact.
+    retention flatters every artifact. Cutoff ranges need a calibrated
+    artifact: without a calibration table the emitted "PD" is the raw score
+    rescaled, and a PD range would be measured on the wrong scale.
 
     The report names ``worst_retention_segment`` and
     ``worst_disagreement_segment``, so an average cannot hide one segment.
@@ -178,6 +180,12 @@ def retention_by_segment(
         raise ValueError("segments must have one label per row")
     labels = sorted(set(groups.tolist()))
     ranges = _resolve_ranges(cutoff_ranges, labels)
+    if ranges and not artifact.get("calibration"):
+        raise ValueError(
+            "cutoff ranges are PD, and this artifact has no calibration table, so the "
+            "PD it emits is its raw score rescaled; build it with calibration_latent= "
+            "and calibration_y= before studying cutoff ranges"
+        )
 
     decisions = [decide(artifact, [float(v) for v in row], explain=False) for row in X_arr]
     latent = np.array([d["raw_micro"] for d in decisions], dtype=float)

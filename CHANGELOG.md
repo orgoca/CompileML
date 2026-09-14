@@ -22,6 +22,16 @@ inside each artifact (`schema_version`).
   report inputs and never enter the hashed artifact.
 - `sweep_whitebox(..., segments=...)` adds per-segment retention and
   `worst_segment` to every configuration.
+- `train_whitebox(..., sample_weight=...)`, passed through by
+  `sweep_whitebox`, to direct a whitebox's fixed budget toward a segment or
+  toward rows near its cutoff range. The tuning guide separates the gap
+  weighting fixes from the one it cannot: on synthetic data a starved 10%
+  segment went from 10.1% to 87.3% retention while the rest fell from 97.8%
+  to 91.3%, but a segment-only interaction — three-way, beyond depth 2 —
+  moved only from 73.0% to 75.9%, where its own artifact reached 79.3%.
+  Weighted artifacts stay exact.
+- `retention_by_segment` refuses cutoff ranges on an artifact without a
+  calibration table, whose emitted PD is only its raw score rescaled.
 
 ## [0.7.1] - 2026-09-13
 
