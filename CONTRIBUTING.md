@@ -18,19 +18,34 @@ infrastructure and something a risk function could actually adopt:
 | | |
 |---|---|
 | [#16](https://github.com/orgoca/CompileML/issues/16) | **Champion/challenger.** Replacing a model means answering who moves, by how much, and why. Both artifacts are hashed and exactly attributed, so the comparison can be exact and reproducible — the same decomposition that powers fair-lending and drift reports, applied across two artifacts instead of two populations. |
-| [#14](https://github.com/orgoca/CompileML/issues/14) | **Calibrated PD and reason codes from COBOL.** The mainframe export emits score and band only, so the decision cannot yet produce its adverse-action reasons where it actually runs. Per-tree attribution has made the computation bounded; the GnuCOBOL parity harness is already in CI. |
+| [#39](https://github.com/orgoca/CompileML/issues/39) | **A scorecard base plus a residual whitebox.** On one large portfolio a plain WOE logistic regression outscored the compiled whitebox, and boosting on the logistic model's residual beat both. The representation already exists; what the issue needs before any spec change is evidence from a second dataset — which anyone with a real portfolio can supply. |
 
-Smaller entry points: [#17](https://github.com/orgoca/CompileML/issues/17)
-(FAQ: why not PMML/ONNX), [#18](https://github.com/orgoca/CompileML/issues/18)
-(WOE compatibility docs), [#12](https://github.com/orgoca/CompileML/issues/12)
-(retention by segment).
+Smaller entry points: [#18](https://github.com/orgoca/CompileML/issues/18)
+(WOE compatibility docs), [#31](https://github.com/orgoca/CompileML/issues/31)
+(waterfall labels clipped at the canvas edge),
+[#19](https://github.com/orgoca/CompileML/issues/19) (distillation cost in
+expected-loss terms).
 
 Domain knowledge is as welcome as code. Several issues — segmented artifact
 suites ([#13](https://github.com/orgoca/CompileML/issues/13)), informative
 missingness ([#11](https://github.com/orgoca/CompileML/issues/11)) — need
 someone who has governed a scorecard in production more than they need someone
-who writes fast Python. Comment on the issue before opening a PR on those; the
+who writes fast Python. Comment before opening a PR on those; the
 design discussion is the work.
+
+## Questions and discussions
+
+[Discussions](https://github.com/orgoca/CompileML/discussions) is for what is
+not yet a piece of work someone can pick up and finish:
+
+- **Q&A** — how do I…? The answer stays findable for the next person.
+- **Ideas** — open design questions, such as whether CompileML should specify
+  segmented artifact suites at all
+  ([#13](https://github.com/orgoca/CompileML/issues/13)).
+- **Show and tell** — what compiling cost on your data, or how you deployed it.
+
+Issues are for bugs and scoped work. A discussion that settles into a concrete
+change becomes an issue.
 
 ## Ground rules
 

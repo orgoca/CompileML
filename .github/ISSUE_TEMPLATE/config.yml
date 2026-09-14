@@ -1,3 +1,13 @@
 # A blank issue stays available on purpose: a template should lower the cost
 # of reporting, never be the price of admission.
 blank_issues_enabled: true
+contact_links:
+  - name: Ask a question
+    url: https://github.com/orgoca/CompileML/discussions/categories/q-a
+    about: 'How do I…? Usage questions are answered in Discussions, where the answer stays findable. Issues are for bugs and scoped work.'
+  - name: Discuss what CompileML should do
+    url: https://github.com/orgoca/CompileML/discussions/categories/ideas
+    about: Open design questions that are not yet a concrete piece of work.
+  - name: Share results on your own data
+    url: https://github.com/orgoca/CompileML/discussions/categories/show-and-tell
+    about: What compiling cost on your data, or how you deployed it. Rough notes are welcome.
