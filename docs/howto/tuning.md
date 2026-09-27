@@ -17,7 +17,96 @@ size — what degrades above depth 2 is *explainability*, and only that.
 
 **Spend on trees; be stingy with depth.**
 
-## Finding the tree count
+## Let the data choose: `compile_selected`
+
+Two things used to be assumed. That the whitebox should learn from the
+teacher's probabilities — and on a 2.9M-row credit portfolio the whitebox
+trained on labels beat the distilled one, with bootstrap intervals excluding
+zero, and a WoE logistic regression beat both compiled models ([#39](https://github.com/orgoca/CompileML/issues/39)).
+And that one holdout could both choose a configuration and report its
+retention — which leaks: the figure chosen on a holdout is optimistic on it.
+
+`compile_selected` replaces both assumptions with a protocol:
+
+```python
+from compileml import compile_selected
+
+result = compile_selected(
+    X, y,
+    ceiling=lambda X_fit, y_fit: XGBClassifier(**tuned).fit(X_fit, y_fit),
+    ceiling_budget={"trials": 200, "cv": "5-fold on fit"},   # recorded, so retention is comparable
+    reference="woe",                                          # or your champion scorecard's Gini
+    date=application_date,                                    # Report becomes the latest slice
+    group=applicant_id,                                       # one applicant, one partition
+)
+result.selection_curve    # every configuration, scored on Select
+result.selected           # alpha, trees, depth, and the tie band it won inside
+report = result.report()  # Report, read once
+```
+
+**Three roles.** The *ceiling* — the teacher — is the strongest model you can
+train under a declared budget. It prices compilation, it may supply soft
+targets, and it never ships. The *floor* is a WoE logistic regression fitted
+inside Fit, or a champion scorecard's Gini. The *candidate* is the depth-≤2
+whitebox, one per configuration.
+
+**Three partitions.** *Fit* trains everything, including calibration and
+band edges. *Select* chooses the target, the tree count, the depth and the
+monotone set. *Report* is read once, for the published figure. The default
+split is 60/20/20 stratified; `date=` makes Report the latest slice, and
+`group=` keeps each applicant in one partition, so a repeat applicant cannot
+sit in Fit and Report at once.
+
+**Soft targets are cross-fitted.** A ceiling scoring its own training rows
+has partly memorised their labels, so in-sample predictions restate the
+label and dilute the soft-target arm. The factory is called once, its
+configuration is frozen, and that configuration is refit K times for
+out-of-fold predictions: one search plus K fits, never K searches.
+
+**The candidate is scored as an artifact.** Every configuration is
+quantized, calibrated and banded on Fit and scored on Select as an integer
+artifact, so quantization and banding are priced, not just the tree fit. The
+tree axis is free: the first 20 trees of a 160-tree fit *are* the 20-tree
+model, so one fit per (α, depth) covers every tree count.
+
+**One-SE-simplest.** The best configuration's Select metric is bootstrapped
+for its standard error; everything within one SE is tied; among the tied,
+α = 1 wins, then fewer trees, then lower depth. The α preference is a
+governance prior — an artifact trained on labels has no training dependency
+on the ceiling — and provenance records it as the tie rule. On large data the
+SE is tiny and the data decides; on small data the prior decides.
+
+**The floor gates.** If the selected configuration does not beat the floor
+on Select, you get a result and no artifact, unless `allow_below_floor=True`.
+Retention against the ceiling and the ratio against the floor are reported at
+equal weight: the first prices the guarantees, the second says whether
+adopting them is worth it.
+
+**The winner is refit on Fit ∪ Select** before Report is read. The selection
+curve therefore ranks *configurations*; the Report figure is the only number
+that describes the artifact that ships. `result.report()` writes that figure
+into the artifact's hash-covered provenance block and refuses to run twice —
+hygiene, not proof, and it says so.
+
+**Small data.** Below `min_select_events` (300) in Select, selection runs as
+nested cross-validation over Fit ∪ Select, with a warning; Report stays held
+out.
+
+**Events per split.** Every configuration reports `eps`, the positives in
+Fit per split in the ensemble. Soft targets help when events are scarce and
+the whitebox would otherwise fit label noise; the boundary measured so far —
+soft targets winning below roughly 10 events per split — came from one
+in-sample sweep, is a lower bound, and is being replaced by
+[#76](https://github.com/orgoca/CompileML/issues/76). It is a diagnostic, never
+a selection input.
+
+**Cost.** The search uses the histogram backend, which at 300k rows fitted
+in a second where the classic backend took five minutes; the tree axis costs
+nothing; Select is scored with the NumPy batch scorer. The ceiling's refits
+dominate: budget for about K + 2 fits of your strongest model beyond the one
+you would train anyway.
+
+## Finding the tree count by hand
 
 ```python
 from compileml.tune import sweep_whitebox
@@ -35,11 +124,16 @@ Each row reports holdout Gini and retention versus the teacher, Spearman rank
 agreement, `exact_attribution`, the quantized model's JSON size, and a
 *measured* per-row exact-explanation cost. Read it like a cost curve: retention
 climbs steeply, then plateaus; pick the elbow. In the repository benchmark,
-120 trees at depth 2 retained 97.9% of a 300-tree teacher's Gini — beyond the
+the selected configuration — α = 0.75, 80 trees, depth 2 — retained 98.04% of a
+300-tree ceiling's Gini on Report (95% interval 97.38–98.72%); 160 trees scored
+basis points higher on Select and lost the tie to the smaller model. Beyond the
 plateau you pay linear size and explain time for basis points of fidelity.
 
-Always sweep on a holdout (`X_val=`) — in-sample retention flatters every
-configuration, and the output flags `in_sample: true` when you didn't.
+A holdout (`X_val=`) is better than in-sample, where retention flatters
+every configuration — but a holdout used both to choose a configuration and to
+report its retention leaks, and `sweep_whitebox` now warns when it sees one.
+Choose on it; report on rows never used to choose. That is what
+`compile_selected` does for you.
 
 ## Choosing depth: one table, one story
 
@@ -423,15 +517,17 @@ rows = sweep_whitebox(X, teacher, y, reference=0.8515, ...)
 The same argument goes to `validate_artifact(reference=...)` as check 10,
 advisory by default and gateable with `require_reference_floor=True`.
 
-## Choosing the target: distillation is a choice, not a given
+## Choosing the target: a selected parameter, not a given
 
-`train_whitebox` regresses onto whatever target you hand it. Distilling from
-a teacher's probabilities is the default, but at a depth-2 budget a soft
-target can spend capacity fitting the teacher's noise rather than the
-outcome — and the labels are right there.
+`train_whitebox` regresses onto whatever target you hand it: the labels, the
+ceiling's out-of-fold probabilities, or a blend `alpha * y + (1 - alpha) *
+ceiling`. Which one wins is a property of your data, not of the method — on
+the portfolio above the labels won outright — so `compile_selected` searches
+α alongside capacity and picks on Select. Pure distillation, `alpha_grid=(0.0,)`,
+was the old default of `sweep_whitebox`; it now warns when the grid is not
+passed, and the default becomes `(0.0, 0.5, 1.0)` in 1.0.
 
-`alpha_grid` sweeps it, training each configuration on
-`alpha * y + (1 - alpha) * teacher_latent`:
+By hand, `alpha_grid` sweeps it:
 
 ```python
 rows = sweep_whitebox(
@@ -449,12 +545,17 @@ endpoints bracket the answer: soft targets sometimes regularize, so an
 interior blend can win. That is the argument for sweeping rather than
 asserting either end.
 
-To drop the teacher entirely, pass `teacher_latent=None`; `alpha_grid` is
-forced to `(1.0,)` and the teacher columns come back `None`.
+To drop the ceiling entirely, pass `teacher_latent=None`; `alpha_grid` is
+forced to `(1.0,)` and the teacher columns come back `None`. Whatever you
+sweep by hand, feed `sweep_whitebox` the ceiling's *out-of-fold* predictions:
+in-sample ones partly restate the labels and understate what a soft target
+does.
 
 ## Defaults, for the impatient
 
+`compile_selected(X, y, ceiling=..., reference="woe")` with its default
+grid — α ∈ {0, 0.25, 0.5, 0.75, 1}, trees {20, 40, 80, 160}, depth {1, 2} — is
+the measured path, and the repository benchmark runs through it. By hand,
 `train_whitebox(n_estimators=30, max_depth=2)` and `n_bands=10` are sane
-starting points, proven in the repository's own benchmark and examples. The
-sweeps are for when "sane" needs to become "measured" — which, in a model
-governance file, it eventually does.
+starting points. The sweeps are for when "sane" needs to become "measured" —
+which, in a model governance file, it eventually does.

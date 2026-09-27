@@ -20,54 +20,41 @@ The choice is not unique to credit. It appears wherever a model makes a decision
 
 CompileML removes that choice.
 
-Train the strongest teacher you can: XGBoost, LightGBM, NN. CompileML projects its predictive structure into a shallow, integer-valued whitebox and packages the complete decision into one hashed artifact: score, calibrated probability, risk bands, reason codes, attribution.
+Train the strongest model you can: XGBoost, LightGBM, a neural network. It sets the ceiling. CompileML then searches for the best whitebox it can compile — trained on the outcomes, on the ceiling's predictions, or on a blend — and chooses on data it will not report on. The whole decision is packaged into one hashed artifact: score, calibrated probability, risk bands, reason codes, attribution. What you get is the artifact, what its guarantees cost against that ceiling, and whether it beats the scorecard you already have.
 
-Then the teacher is discarded. It was a means, not a deliverable, and it never reaches production.
+The ceiling is a measuring instrument. It never ships.
 
 What ships instead is decision logic built from integer addition, comparison, and table lookup. It runs under CompileML's standard-library-only Python implementation, an ordinary application, a small Lambda, a batch job or you export it as standalone SQL or COBOL and run it directly where the decision already happens. No XGBoost in production, no scikit-learn, no scoring service to operate. In exported form there is no model runtime at all.
 
-This is not a lighter way to serve the black box. The black box was used as a teacher and then compiled out of the system.
+This is not a lighter way to serve the black box. The black box set the bar and was then compiled out of the system.
 
 That buys three things, and I would not trade any one of them for the other two: the artifact reproduces to the integer on any machine, it explains itself by arithmetic rather than approximation, and it lands where the decision already runs. The sections below are how each one is enforced.
 
-The benchmark puts the cost at about 2% of the teacher's Gini. In exchange, at whitebox depth two or less, every decision reconstructs exactly from a printed scorecard table, and every explanation adds back to the production score with nothing left over.
+The benchmark puts the cost at about 2% of the ceiling's Gini — 98.04% retained on rows the selection never saw, with a 95% interval of 97.38–98.72% — and the artifact out-scores a WoE logistic regression on the same rows by 3.4%. In exchange, at whitebox depth two or less, every decision reconstructs exactly from a printed scorecard table, and every explanation adds back to the production score with nothing left over.
 
 The examples in this repository come from credit, where the project began and where lenders must explain every adverse decision, reproduce it for a validator, and often run it on systems that predate Python. [Where it fits](docs/concepts/where-it-fits.md) maps the vocabulary to other domains and says where the fit is weaker.
 
 ## Quick example
 
-Train however you want. The example below uses a strong model as a teacher and distills it into a shallow whitebox:
+Train the strongest model you can. CompileML chooses the whitebox, prices it against that model, and reads the reported figure from rows it never chose on:
 
 ```python
-from compileml.compile import train_whitebox
-from compileml.bands import monotone_quantile_bands
-from compileml.artifact import build_artifact, save_artifact
+from compileml import compile_selected
+from compileml.artifact import save_artifact
 
-whitebox, fidelity = train_whitebox(
-    X_train,
-    teacher.predict_proba(X_train)[:, 1],
-)
-
-latent = whitebox.predict(X_train).clip(0, 1)
-
-bands = monotone_quantile_bands(
-    latent,
-    y_train,
-    n_bands=10,
-)
-
-artifact = build_artifact(
-    whitebox,
-    feature_names,
-    baseline=medians,
-    band_edges=bands,
-    calibration_latent=latent,
-    calibration_y=y_train,
+result = compile_selected(
+    X, y,
+    ceiling=lambda X_fit, y_fit: XGBClassifier(**tuned).fit(X_fit, y_fit),
+    reference="woe",              # the floor: a WoE logistic regression, fitted inside Fit
     reasons=REASON_DICTIONARY,
 )
 
-save_artifact(artifact, "decision.json")
+result.selected                   # the target and configuration chosen on Select
+report = result.report()          # Report, read once: retention and floor ratio, with intervals
+save_artifact(result.artifact, "decision.json")
 ```
+
+Every step is also a plain function — `train_whitebox`, `monotone_quantile_bands`, `build_artifact` — for when you want each one in your hands; the [quickstart](docs/quickstart.md) walks that path.
 
 Production does not need the training stack:
 
@@ -171,7 +158,7 @@ The artifact includes a SHA-256 hash. Loaders verify it by default and reject a 
 
 ## Measured performance
 
-The committed benchmark uses deterministic synthetic credit data with 40,000 rows and 23 features. It runs on a consumer laptop through the pure-Python runtime.
+The committed benchmark uses deterministic synthetic credit data with 40,000 rows and 23 features, split 60/20/20 into Fit, Select and Report. `compile_selected` chooses the target, the tree count and the depth on Select from 40 configurations; the winner is refit on Fit ∪ Select; and every retention figure below is read once from Report. It selected α = 0.75 — a blend of labels and the ceiling's cross-fitted predictions — with 80 trees at depth 2, inside a tie band of 4; both pure targets, labels alone and the ceiling alone, scored lower on Select. The ceiling is a 300-tree, depth-4 GBM with a fixed, undeclared-search configuration, recorded as such. Latency runs on a consumer laptop through the pure-Python runtime.
 
 You can reproduce every number from an editable install of the checked-out source:
 
@@ -180,23 +167,25 @@ pip install -e .
 python benchmarks/run_benchmarks.py
 ```
 
-`results.json` records the CompileML version it measured, so a run against an older installed copy cannot pass for a measurement of the current code.
+`results.json` records the CompileML version it measured, so a run against an older installed copy cannot pass for a measurement of the current code. The table below and the cost figures elsewhere in the docs are written from that file by `python benchmarks/sync_docs.py`, never by hand.
 
-| Metric                                     |                      Value |
-| ------------------------------------------ | -------------------------: |
-| Teacher Gini, 300-tree GBM                 |                      0.667 |
-| **Compiled integer artifact Gini**         | **0.653 — 97.9% retained** |
-| Band-ordinal Gini, 10 bands                |     0.647 — 97.0% retained |
-| Spearman correlation, teacher vs. artifact |                      0.977 |
-| Score + band + calibrated PD               |         **0.03 ms median** |
-| Score + band + calibrated PD, p95          |                    0.04 ms |
-| Full explained decision, 120 trees         |             0.62 ms median |
-| Full explained decision, p95               |                    0.84 ms |
-| Band assignment alone                      |                     0.2 µs |
-| Artifact size                              |                      97 KB |
-| Identical hash on rebuild                  |                        Yes |
+| Metric                                         |                                  Value |
+| ---------------------------------------------- | -------------------------------------: |
+| Ceiling Gini, 300-tree GBM                     |                                  0.664 |
+| **Compiled integer artifact Gini**             | **0.651 — 98.0% retained (97.4–98.7)** |
+| Floor Gini, WoE logistic regression            |             0.630 — artifact at 103.4% |
+| Band-ordinal Gini, 10 bands                    |                 0.643 — 96.7% retained |
+| Spearman correlation, ceiling vs. artifact     |                                  0.980 |
+| Selected on Select, of 40 configurations       |            α = 0.75, 80 trees, depth 2 |
+| Score + band + calibrated PD                   |                     **0.03 ms median** |
+| Score + band + calibrated PD, p95              |                                0.06 ms |
+| Full explained decision, 80 trees              |                         0.70 ms median |
+| Full explained decision, p95                   |                                1.20 ms |
+| Band assignment alone                          |                                 0.4 µs |
+| Artifact size                                  |                                  70 KB |
+| Same configuration and identical hash on rerun |                                    Yes |
 
-That 2% of Gini is the price of everything above it. It is stated rather than hidden, and it is reproducible on your own data with `compileml.tune.sweep_whitebox`.
+That 2% of Gini is the price of everything above it. It is stated rather than hidden, it comes with an interval, and `compile_selected` measures it the same way on your own data. The full selection curve — every configuration scored on Select — is committed beside the results as `benchmarks/selection_curve.json`; it ranks configurations and does not describe the shipped artifact.
 
 One honest qualification: scoring is very fast; full explanation costs more.
 
@@ -206,10 +195,10 @@ On the benchmark's 120-tree ensemble, attribution alone:
 
 | features | perturbation | per tree | tree walks, perturbation | tree walks, per tree |
 | -------: | -----------: | -------: | -----------------------: | -------------------: |
-| 8 | 0.94 ms | 0.62 ms | 4,560 | 792 |
-| 23 | 6.79 ms | 0.70 ms | 33,360 | 912 |
-| 50 | 32.26 ms | 0.78 ms | 153,240 | 944 |
-| 100 | 131.31 ms | 0.76 ms | 606,240 | 936 |
+| 8 | 1.23 ms | 0.76 ms | 4,560 | 792 |
+| 23 | 9.07 ms | 0.89 ms | 33,360 | 912 |
+| 50 | 47.97 ms | 0.94 ms | 153,240 | 944 |
+| 100 | 200.69 ms | 0.95 ms | 606,240 | 936 |
 
 The walk counts are exact and hold on any machine; the milliseconds belong to one laptop. Cost follows walks, and walks follow tree structure rather than width: the sweep's models are fitted to a target that uses every feature, so more of their trees split on three distinct features than the headline model's do, which is why attribution alone at 23 features here costs slightly more than the full decision in the table above. At eight features the difference between the two derivations is modest. At a hundred it is the difference between a quadratic cost and a flat one. It is exact rather than sampled, and both derivations reach identical integers on every timed row.
 
@@ -240,7 +229,7 @@ For banding, `band_efficiency()` reports what the ladder discards — the Gini g
 
 ## What CompileML is not
 
-CompileML is not a new training framework. Use XGBoost, LightGBM, scikit-learn, or another teacher that can be distilled into the supported whitebox representation.
+CompileML is not a new training framework. Use XGBoost, LightGBM, scikit-learn, or any model that can set the ceiling for a whitebox, or be compiled into the supported representation directly.
 
 It is not a promise that your data pipelines are identical. Determinism means:
 
@@ -325,7 +314,8 @@ It checks:
 7. explanation stability;
 8. reason-code coverage;
 9. declared monotone directions, re-verified against the shipped trees;
-10. that the artifact out-scores a reference model on the same data.
+10. that the artifact out-scores a reference model on the same data;
+11. that, when the artifact records how it was selected, the protocol was followed: cross-fitted soft targets, disjoint partitions, one Report read.
 
 These checks run against the compiled artifact through the same runtime used for production decisions. There is no separate notebook implementation allowed to become "almost the same" over time.
 
@@ -413,12 +403,14 @@ Recently shipped:
 * exact attribution aggregated per tree, so explaining a decision no longer grows with feature count, and a fairness audit in `compileml.fairness` (0.5);
 * exact drift decomposition, band calibration and baseline staleness in `compileml.monitor` (0.6);
 * the calibrated PD and reason codes from the COBOL and SQL exports (0.7);
-* retention by segment and across PD cutoff ranges, and weighting a whitebox toward the segment that pays (0.8).
+* retention by segment and across PD cutoff ranges, and weighting a whitebox toward the segment that pays (0.8);
+* `compile_selected`: the target and the configuration chosen on data the report never sees, the ceiling as yardstick, a provenance block that carries the reported cost, and a NumPy batch scorer (0.9).
 
 The current priorities are:
 
-* add Java and C exporters;
-* add an optional NumPy batch scorer.
+* the gate experiment ([#76](https://github.com/orgoca/CompileML/issues/76)): where soft targets stop helping, and whether log-loss earns a logit-space latent;
+* a logit-space latent, if that experiment supports it;
+* add Java and C exporters.
 
 ## License
 

@@ -60,10 +60,10 @@ From the committed benchmark, attribution alone on a 120-tree ensemble:
 
 | features | perturbation | per tree | tree walks, perturbation | tree walks, per tree |
 |---|---|---|---|---|
-| 8 | 0.94 ms | 0.62 ms | 4,560 | 792 |
-| 23 | 6.79 ms | 0.70 ms | 33,360 | 912 |
-| 50 | 32.26 ms | 0.78 ms | 153,240 | 944 |
-| 100 | 131.31 ms | 0.76 ms | 606,240 | 936 |
+| 8 | 1.23 ms | 0.76 ms | 4,560 | 792 |
+| 23 | 9.07 ms | 0.89 ms | 33,360 | 912 |
+| 50 | 47.97 ms | 0.94 ms | 153,240 | 944 |
+| 100 | 200.69 ms | 0.95 ms | 606,240 | 936 |
 
 Flat, not merely faster. The walk counts are exact and hold on any machine;
 the milliseconds are one laptop's. The benchmark's target spreads signal over
@@ -87,7 +87,7 @@ attributions rather than sample estimates with selection effects. This is why
 `decide()` defaults to `explain=True`.
 
 Batch re-explanation used to be the place the cost hurt: 10M accounts at
-8.4 ms is roughly 23 CPU-hours, and it grew with p². At 0.62 ms it is under
+8.4 ms is roughly 23 CPU-hours, and it grew with p². At 0.70 ms it is under
 two, and it no longer grows with feature count. That is what makes
 reason-code emission in the SQL export tractable rather than impractical.
 Live latency was never the constraint.

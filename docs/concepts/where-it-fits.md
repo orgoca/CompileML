@@ -54,7 +54,7 @@ read them this way:
 | cutoff range | where the decision threshold will sit | risk appetite | review capacity | escalation threshold | contact threshold |
 | reason code | a top driver of one decision | adverse-action reason | why the alert fired | why the case was flagged | retention driver |
 | `risk_increasing` / `risk_decreasing` | pushes toward / away from the positive outcome | raises / lowers default risk | raises / lowers fraud risk | raises / lowers event risk | raises / lowers churn risk |
-| teacher retention | how much of the teacher's ranking survives compilation | same | same | same | same |
+| retention | how much of the ceiling model's (the teacher's) ranking survives compilation | same | same | same | same |
 
 If you use CompileML outside credit, what compiling cost on your data is
 exactly what [Show and tell](https://github.com/orgoca/CompileML/discussions/categories/show-and-tell)

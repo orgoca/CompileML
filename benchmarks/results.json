@@ -1,54 +1,83 @@
 {
   "seed": 42,
-  "compileml": "0.5.0",
+  "compileml": "0.8.0",
   "python": "3.14.3",
   "machine": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
   "os": "Windows 11",
   "retention": {
-    "teacher_auc": 0.8336,
-    "artifact_auc": 0.8266,
-    "teacher_gini": 0.6673,
-    "artifact_gini": 0.6533,
-    "band_ordinal_gini": 0.6474,
-    "gini_retention_pct": 97.9,
-    "band_gini_retention_pct": 97.03,
-    "spearman_teacher_vs_artifact": 0.9774,
-    "distill_spearman_train": 0.9761,
-    "n_train": 30000,
-    "n_test": 10000,
-    "n_features": 23
+    "protocol": "compile_selected: chosen on Select, reported once on Report",
+    "partition_method": "stratified",
+    "n_fit": 24000,
+    "n_select": 8000,
+    "n_report": 8000,
+    "n_features": 23,
+    "selected_alpha": 0.75,
+    "selected_trees": 80,
+    "selected_depth": 2,
+    "select_gini": 0.6587,
+    "n_configs": 40,
+    "n_tied": 4,
+    "eps_min": 16.1,
+    "ceiling_family": "sklearn.ensemble._hist_gradient_boosting.gradient_boosting.HistGradientBoostingClassifier",
+    "teacher_auc": 0.8323,
+    "artifact_auc": 0.8257,
+    "teacher_gini": 0.6645,
+    "artifact_gini": 0.6515,
+    "artifact_gini_ci": [
+      0.6361,
+      0.6705
+    ],
+    "artifact_ks": 0.494,
+    "artifact_brier": 0.15335,
+    "ceiling_brier": 0.15055,
+    "band_ordinal_gini": 0.6427,
+    "gini_retention_pct": 98.04,
+    "retention_ci": [
+      97.38,
+      98.72
+    ],
+    "band_gini_retention_pct": 96.72,
+    "floor_gini": 0.63,
+    "floor_ratio_pct": 103.41,
+    "floor_ratio_ci": [
+      102.54,
+      104.25
+    ],
+    "spearman_teacher_vs_artifact": 0.9801,
+    "n_train": 32000,
+    "n_test": 8000
   },
   "latency": {
-    "score_band_pd_median_ms": 0.03,
-    "score_band_pd_p95_ms": 0.043,
-    "full_explain_median_ms": 0.625,
-    "full_explain_p95_ms": 0.842,
-    "band_ladder_median_us": 0.2,
+    "score_band_pd_median_ms": 0.034,
+    "score_band_pd_p95_ms": 0.062,
+    "full_explain_median_ms": 0.696,
+    "full_explain_p95_ms": 1.197,
+    "band_ladder_median_us": 0.4,
     "explain_by_features": {
       "8": {
-        "per_tree_ms": 0.622,
-        "perturbation_ms": 0.938,
+        "per_tree_ms": 0.756,
+        "perturbation_ms": 1.232,
         "per_tree_walks": 792,
         "perturbation_walks": 4560,
         "features_split_on": 8
       },
       "23": {
-        "per_tree_ms": 0.705,
-        "perturbation_ms": 6.786,
+        "per_tree_ms": 0.889,
+        "perturbation_ms": 9.068,
         "per_tree_walks": 912,
         "perturbation_walks": 33360,
         "features_split_on": 23
       },
       "50": {
-        "per_tree_ms": 0.781,
-        "perturbation_ms": 32.26,
+        "per_tree_ms": 0.94,
+        "perturbation_ms": 47.965,
         "per_tree_walks": 944,
         "perturbation_walks": 153240,
         "features_split_on": 50
       },
       "100": {
-        "per_tree_ms": 0.759,
-        "perturbation_ms": 131.314,
+        "per_tree_ms": 0.954,
+        "perturbation_ms": 200.695,
         "per_tree_walks": 936,
         "perturbation_walks": 606240,
         "features_split_on": 88
@@ -61,15 +90,16 @@
       "measures": "attribution only, per row: median ms, and tree walks",
       "derivations_agree": true
     },
-    "note": "pure-Python stdlib runtime, single row, 120 depth-2 trees at p=23. full_explain is the whole decide() payload: score, band, PD, exact attribution and reason codes. Attribution is aggregated per tree, so its cost is O(trees) and independent of feature count; explain_by_features times the attribution alone by both derivations, with tree walks per row as the machine-independent measure."
+    "note": "pure-Python stdlib runtime, single row, 80 depth-2 trees at p=23. full_explain is the whole decide() payload: score, band, PD, exact attribution and reason codes. Attribution is aggregated per tree, so its cost is O(trees) and independent of feature count; explain_by_features times the attribution alone by both derivations, with tree walks per row as the machine-independent measure."
   },
   "artifact": {
-    "size_kb": 97.2,
-    "n_trees": 120,
-    "hash": "58795bc5870fc9bd\u2026",
+    "size_kb": 70.2,
+    "n_trees": 80,
+    "hash": "dcabaa0dd2e99ad0\u2026",
     "exact_attribution": true
   },
   "determinism": {
-    "rebuild_hash_identical": true
+    "rebuild_hash_identical": true,
+    "same_configuration_selected": true
   }
 }

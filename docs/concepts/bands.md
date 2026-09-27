@@ -43,7 +43,7 @@ five. There is a test pinning each behavior.
 
 !!! note "Strictness is a knob"
     `eps_auc` controls how much residual within-band ranking you tolerate.
-    Distilled whitebox latents are naturally plateaued (a depth-2, 120-tree
+    Whitebox latents are naturally plateaued (a depth-2, 120-tree
     model takes finitely many values), which is the intended input. A smooth,
     steadily-sloped latent may legitimately support only one band under a
     strict `eps_auc` — that is the method telling you band boundaries would be

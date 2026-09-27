@@ -48,9 +48,10 @@ handled per the artifact's missing policy.
 
 ```bash
 compileml validate decision.json --csv holdout.csv --y-col DEFAULT --require-reasons
+compileml validate decision.json --csv holdout.csv --y-col DEFAULT --require-selection-hygiene
 ```
 
-Runs the [ten-check framework](../howto/validate.md); prints the full
+Runs the [eleven-check framework](../howto/validate.md); prints the full
 evidence report as JSON; exits non-zero if any check fails — suitable as a CI
 deployment gate.
 

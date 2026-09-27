@@ -40,6 +40,18 @@
 
 ::: compileml.tune.retention_by_segment
 
+## Selection
+
+::: compileml.select.compile_selected
+
+::: compileml.select.SelectionResult
+
+::: compileml.select.make_partitions
+
+::: compileml.select.default_grid
+
+::: compileml.select.choose
+
 ## Scorecard
 
 ::: compileml.scorecard.build_scorecard
@@ -67,6 +79,10 @@
 ::: compileml.runtime.verify_artifact
 
 ::: compileml.runtime.decide
+
+## Batch scoring (learning side)
+
+::: compileml.batch.score_batch
 
 ## Fairness
 

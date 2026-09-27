@@ -24,7 +24,7 @@ Or gate a pipeline on the CLI's exit code:
 compileml validate decision.json --csv holdout.csv --y-col DEFAULT --require-reasons
 ```
 
-## The ten checks
+## The eleven checks
 
 | # | Check | What it proves | Needs |
 |---|---|---|---|
@@ -38,6 +38,7 @@ compileml validate decision.json --csv holdout.csv --y-col DEFAULT --require-rea
 | 8 | reason coverage | dictionary coverage of feature names; optional hard gate | nothing |
 | 9 | monotone constraints | declared directions re-verified against the shipped integer trees ([spec §3.1](../ARTIFACT_SPEC.md)) | nothing |
 | 10 | reference floor | the artifact out-scores a reference model on the same data — the floor teacher retention cannot supply | X + y + reference |
+| 11 | selection hygiene | when the artifact carries a provenance block from `compile_selected`: soft targets cross-fitted, partitions disjoint, Report read once; advisory unless `require_selection_hygiene=True` | nothing |
 
 Checks lacking inputs **skip** (reported as skipped, not passed silently);
 checks 1 and 8 always run, and check 9 runs whenever the artifact declares
