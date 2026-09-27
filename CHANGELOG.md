@@ -52,6 +52,12 @@ inside each artifact (`schema_version`).
   pipeline selects it". API names are unchanged.
 - The benchmark runs through `compile_selected`. It selected α = 0.75, 80 trees, depth 2 on Select — both pure targets scored lower — and reports 98.04% retention on Report with a 95% interval of 97.38–98.72%, against 97.9% before on a holdout that had also chosen the configuration; the artifact stands at 103.41% of a WoE logistic floor (interval 102.54–104.25%). The ceiling is now the histogram GBM (300 trees, depth 4, fixed and recorded as unsearched), so the whole run takes minutes. `results.json` gains the selected configuration, intervals, floor figures, KS, Brier and events per split, and drops `distill_spearman_train`; the selection curve is committed as `benchmarks/selection_curve.json`. The determinism check now reruns the entire protocol and requires the same configuration and the same hash.
 
+  The latency block was re-measured in the same run and every millisecond figure moved by
+  1.2–1.5× on models identical to 0.5.1's, with identical tree-walk counts, so the change is
+  the reference laptop's state on the day, not the code. The transcribed copies in the README,
+  the attribution page and the FAQ follow the committed file, as they must; the walk counts
+  are the machine-independent measure and are unchanged.
+
 ## [0.8.0] - 2026-09-13
 
 What compilation cost where decisions are made — and what to do about it.
