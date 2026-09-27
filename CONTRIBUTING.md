@@ -23,7 +23,7 @@ infrastructure and something a risk function could actually adopt:
 Smaller entry points: [#18](https://github.com/orgoca/CompileML/issues/18)
 (WOE compatibility docs), [#31](https://github.com/orgoca/CompileML/issues/31)
 (waterfall labels clipped at the canvas edge),
-[#19](https://github.com/orgoca/CompileML/issues/19) (distillation cost in
+[#19](https://github.com/orgoca/CompileML/issues/19) (compilation cost in
 expected-loss terms).
 
 Domain knowledge is as welcome as code. Several issues — segmented artifact

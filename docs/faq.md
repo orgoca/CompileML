@@ -67,19 +67,23 @@ tell you the artifact is being beaten by a logistic regression on the same
 data — which does happen, particularly at depth 2 where capacity is the
 binding constraint. Fit the other side of the comparison with
 `compileml.reference.fit_reference` (or pass your champion scorecard's Gini
-as a plain float) and every sweep row carries the floor beside the ceiling.
-Validation check 10 applies the same comparison to a built artifact. See
+as a plain float) and every sweep row carries the floor beside the ceiling;
+`compile_selected` reports both at equal weight, with intervals, and refuses
+to build an artifact that does not clear the floor. Validation check 10
+applies the same comparison to a built artifact. See
 [the tuning guide](howto/tuning.md#the-floor-what-should-the-whitebox-beat).
 
 ## Should I distil from a teacher, or train on labels directly?
 
-Measure it rather than assuming. `train_whitebox` takes any target, and
-`sweep_whitebox(alpha_grid=...)` sweeps the blend
-`alpha * y + (1 - alpha) * teacher_latent` from pure distillation to pure
-labels. At a small tree-and-depth budget, regressing onto a teacher's
-probabilities can spend capacity on teacher noise instead of outcome; whether
-that happens on your data is an empirical question. Sweep the target
-alongside capacity, not on its own — the two are easy to confuse.
+Let the pipeline select it. `compile_selected` trains candidates on the
+labels, on the ceiling's cross-fitted predictions, and on blends of the two,
+and picks on rows it will not report on. On a 2.9M-row credit portfolio the
+whitebox trained on labels beat the distilled one, so distillation is no
+longer the default anywhere; soft targets earn their place when events are
+scarce and the whitebox would otherwise fit label noise. Sweeping by hand is
+still possible with `sweep_whitebox(alpha_grid=...)` — sweep the target
+alongside capacity, since the two are easy to confuse, and use out-of-fold
+ceiling predictions, since in-sample ones partly restate the labels.
 
 ## Why not just use SHAP?
 
@@ -98,11 +102,11 @@ PMML, ONNX and m2cgen solve related but different problems, and each is the
 better choice when its problem is yours. PMML is mature, widely understood by
 validators, and its Scorecard model already carries points and reason codes.
 ONNX is the broad inference standard, and the natural choice for a model such
-as a neural network you do not want to distill. m2cgen turns a trained model
+as a neural network you do not want to compile through a whitebox. m2cgen turns a trained model
 into readable code in many languages, including ones CompileML does not
 export to.
 
-All three run the model you trained. CompileML runs a distilled one — a
+All three run the model you trained. CompileML runs a compiled whitebox — a
 depth-2 whitebox that gives up some discrimination, about 2% of Gini on the
 committed benchmark — in exchange for a different guarantee. It targets the
 **decision**, not just the scorer: integer arithmetic fixed in the artifact
@@ -111,13 +115,14 @@ SQL and COBOL agree to the integer; calibration, bands and reason codes in one
 hashed document; and attributions for the whole tree ensemble that add back to
 the score exactly. If you need to run a model elsewhere, use one of those
 tools. If you need the deployed decision itself to be deterministic and
-auditable, and can afford the distillation, that is the problem CompileML is
+auditable, and can afford the compression, that is the problem CompileML is
 designed to solve.
 
 ## Can I compile my XGBoost classifier directly?
 
 Directly compiled models must emit a latent in [0, 1] — a classifier's raw
-margin lives in log-odds space and will be clamped into nonsense. Distill it:
+margin lives in log-odds space and will be clamped into nonsense. Train a
+whitebox on its probabilities instead:
 `train_whitebox(X, model.predict_proba(X)[:, 1])`. Regressors on
 probability-like targets compile directly, and the build warns when sample
 latents fall outside range.
@@ -125,7 +130,7 @@ latents fall outside range.
 ## What about neural networks?
 
 Same route: any model that produces a probability-like latent can teach a
-whitebox. The artifact never contains the network — it contains the distilled
+whitebox. The artifact never contains the network — it contains the compiled
 trees, with the retention measured and recorded.
 
 ## What happens when I retrain or recalibrate?
@@ -164,7 +169,7 @@ labels.
 It is still more work than scoring, but no longer dramatically so, and no
 longer quadratic in feature count. Attribution is aggregated per tree, which
 makes the cost `O(trees)` and independent of `p` — on the committed
-benchmark's 120-tree ensemble, 0.6–0.8 ms per row whether the model has
+benchmark's 120-tree ensemble, 0.8–1.0 ms per row whether the model has
 8 features or 100. More trees cost proportionally more; more features do not.
 
 That is real-time for credit decisioning, which is why

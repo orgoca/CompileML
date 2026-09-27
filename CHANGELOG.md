@@ -41,6 +41,16 @@ inside each artifact (`schema_version`).
 - `sweep_whitebox` warns when `alpha_grid` is not passed — its default of
   pure distillation is the assumption real data falsified — and when `X_val`
   is used both to choose and to report. The defaults switch in 1.0.
+- The documentation stops describing distillation as what CompileML does.
+  "Compile" is the verb; the strongest model is the *ceiling* (the teacher),
+  a measuring instrument that never ships; *retention* is defined at first
+  use as artifact Gini over ceiling Gini on the Report partition, against a
+  ceiling tuned under a declared budget; the floor is reported at equal
+  weight. The README quick example runs through `compile_selected`, the
+  quickstart keeps the by-hand path, the tuning guide gains *Let the data
+  choose*, and the FAQ entry on distilling versus labels answers "the
+  pipeline selects it". API names are unchanged.
+- The benchmark runs through `compile_selected`. It selected α = 0.75, 80 trees, depth 2 on Select — both pure targets scored lower — and reports 98.04% retention on Report with a 95% interval of 97.38–98.72%, against 97.9% before on a holdout that had also chosen the configuration; the artifact stands at 103.41% of a WoE logistic floor (interval 102.54–104.25%). The ceiling is now the histogram GBM (300 trees, depth 4, fixed and recorded as unsearched), so the whole run takes minutes. `results.json` gains the selected configuration, intervals, floor figures, KS, Brier and events per split, and drops `distill_spearman_train`; the selection curve is committed as `benchmarks/selection_curve.json`. The determinism check now reruns the entire protocol and requires the same configuration and the same hash.
 
 ## [0.8.0] - 2026-09-13
 

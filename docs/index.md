@@ -22,6 +22,7 @@ model  ──compile──►  decision.json  ──runs on──►  stdlib Pyt
 ## Where to start
 
 - New here → [Quickstart](quickstart.md)
+- Choosing the whitebox → [Let the data choose](howto/tuning.md)
 - Not in lending? → [Where it fits](concepts/where-it-fits.md)
 - Want the exact rules → [Artifact specification](ARTIFACT_SPEC.md)
 - "Why should I believe the determinism claim?" → [Determinism](concepts/determinism.md)

@@ -2,7 +2,10 @@
 
 Reproduces every performance and retention number stated in the README.
 Fully deterministic: synthetic credit-style data with a fixed seed, no
-network access. Run it yourself:
+network access. The whitebox is chosen by ``compile_selected`` — target,
+tree count and depth selected on a partition the report never sees — and
+the retention figure is read once from the Report partition. Run it
+yourself:
 
     python benchmarks/run_benchmarks.py
 
@@ -18,17 +21,17 @@ import time
 from pathlib import Path
 
 import numpy as np
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
 
 import compileml
 from compileml.artifact import build_artifact, save_artifact
-from compileml.bands import monotone_quantile_bands, quantile_bands
+from compileml.bands import quantile_bands
 from compileml.compile import train_whitebox
 from compileml.runtime import LEAF, contributions_half_micro, decide, load_artifact
 from compileml.runtime.bands import band_index
 from compileml.runtime.explain import contributions_half_micro_reference
+from compileml.select import compile_selected
 
 SEED = 42
 HERE = Path(__file__).resolve().parent
@@ -151,67 +154,100 @@ def main() -> None:
     # ------------------------------------------------------------ retention
     n, p = 40_000, 23
     X, y = make_credit_data(n, p, rng)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.25, stratify=y, random_state=SEED
-    )
     feature_names = [f"feature_{i:02d}" for i in range(p)]
 
-    print("training teacher (sklearn GBM, 300 trees, depth 4)…")
-    teacher = GradientBoostingClassifier(
-        n_estimators=300, max_depth=4, learning_rate=0.05, random_state=SEED
-    ).fit(X_train, y_train)
-    teacher_latent_train = teacher.predict_proba(X_train)[:, 1]
-    teacher_latent_test = teacher.predict_proba(X_test)[:, 1]
+    # The ceiling: a fixed 300-tree, depth-4 GBM. Not searched, and the
+    # provenance says so — retention is only comparable across artifacts when
+    # the effort behind the denominator is declared.
+    def ceiling(X_fit, y_fit):
+        return HistGradientBoostingClassifier(
+            max_iter=300, max_depth=4, learning_rate=0.05, random_state=SEED
+        ).fit(X_fit, y_fit)
 
-    print("distilling whitebox (120 trees, depth 2)…")
-    whitebox, fidelity = train_whitebox(
-        X_train, teacher_latent_train, n_estimators=120, random_state=SEED
+    budget = {"trials": 1, "note": "fixed configuration, not searched"}
+    print("selecting the whitebox: default grid on Select, ceiling cross-fitted…")
+    result = compile_selected(
+        X,
+        y,
+        ceiling=ceiling,
+        ceiling_budget=budget,
+        reference="woe",
+        feature_names=feature_names,
+        seed=SEED,
     )
-    latent_train = np.clip(whitebox.predict(X_train), 0, 1)
-
-    bands = monotone_quantile_bands(latent_train, y_train, n_bands=10)
-    artifact = build_artifact(
-        whitebox,
-        feature_names,
-        np.median(X_train, axis=0),
-        bands,
-        calibration_latent=latent_train,
-        calibration_y=y_train,
-        X_sample=X_train[:500],
-    )
+    unreported_hash = result.artifact["artifact_hash"]
+    report = result.report()
+    artifact = result.artifact
     path = HERE / "benchmark_artifact.json"
     save_artifact(artifact, path)
     artifact = load_artifact(path)
+    parts = result.partitions
+    sel = result.selected
 
-    rows_test = [[float(v) for v in row] for row in X_test]
+    rows_test = [[float(v) for v in row] for row in X[parts.report]]
+    y_test = y[parts.report]
     decisions = [decide(artifact, row, explain=False) for row in rows_test]
-    artifact_latent = np.array([d["raw_micro"] for d in decisions], dtype=float) / 1e6
+    artifact_latent = np.array([d["raw_micro"] for d in decisions], dtype=float)
     artifact_band = np.array([d["band_idx"] for d in decisions], dtype=float)
+    # The ceiling refit on Fit ∪ Select is what compile_selected scored Report
+    # with; the same factory, seed and rows reproduce it exactly.
+    ceiling_scores = ceiling(X[parts.dev], y[parts.dev]).predict_proba(X[parts.report])[:, 1]
 
     def gini(score) -> float:
         return 2 * roc_auc_score(y_test, score) - 1
 
-    g_teacher = gini(teacher_latent_test)
-    g_artifact = gini(artifact_latent)
-    g_band = gini(artifact_band)
     from scipy.stats import spearmanr
 
+    g_teacher, g_artifact = report["ceiling"]["gini"], report["artifact"]["gini"]
+    g_band = gini(artifact_band)
     results["retention"] = {
-        "teacher_auc": round(roc_auc_score(y_test, teacher_latent_test), 4),
-        "artifact_auc": round(roc_auc_score(y_test, artifact_latent), 4),
+        "protocol": "compile_selected: chosen on Select, reported once on Report",
+        "partition_method": parts.method,
+        "n_fit": int(len(parts.fit)),
+        "n_select": int(len(parts.select)),
+        "n_report": int(len(parts.report)),
+        "n_features": p,
+        "selected_alpha": sel["alpha"],
+        "selected_trees": sel["n_estimators"],
+        "selected_depth": sel["max_depth"],
+        "select_gini": round(sel["select_gini"], 4),
+        "n_configs": len(result.selection_curve),
+        "n_tied": sel["n_tied"],
+        "eps_min": round(artifact["metadata"]["provenance"]["eps_min"], 1),
+        "ceiling_family": artifact["metadata"]["provenance"]["ceiling"]["family"],
+        "teacher_auc": round((g_teacher + 1) / 2, 4),
+        "artifact_auc": round((g_artifact + 1) / 2, 4),
         "teacher_gini": round(g_teacher, 4),
         "artifact_gini": round(g_artifact, 4),
+        "artifact_gini_ci": [round(v, 4) for v in report["artifact_gini_ci"]],
+        "artifact_ks": round(report["artifact"]["ks"], 4),
+        "artifact_brier": round(report["artifact"]["brier"], 5),
+        "ceiling_brier": round(report["ceiling"]["brier"], 5),
         "band_ordinal_gini": round(g_band, 4),
-        "gini_retention_pct": round(100 * g_artifact / g_teacher, 2),
+        "gini_retention_pct": round(report["retention_pct"], 2),
+        "retention_ci": [round(v, 2) for v in report["retention_ci"]],
         "band_gini_retention_pct": round(100 * g_band / g_teacher, 2),
+        "floor_gini": round(report["floor"]["gini"], 4),
+        "floor_ratio_pct": round(report["floor_ratio_pct"], 2),
+        "floor_ratio_ci": [round(v, 2) for v in report["floor_ratio_ci"]],
         "spearman_teacher_vs_artifact": round(
-            float(spearmanr(teacher_latent_test, artifact_latent)[0]), 4
+            float(spearmanr(ceiling_scores, artifact_latent)[0]), 4
         ),
-        "distill_spearman_train": round(fidelity["spearman"], 4),
-        "n_train": len(X_train),
-        "n_test": len(X_test),
-        "n_features": p,
+        "n_train": int(len(parts.dev)),
+        "n_test": int(len(parts.report)),
     }
+    curve_path = HERE / "selection_curve.json"
+    curve_path.write_text(
+        json.dumps(
+            {
+                "note": "Select-partition figures, one row per configuration; "
+                "they rank configurations and do not describe the shipped artifact",
+                "rows": result.selection_curve,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     # ------------------------------------------------------------ latency
     print("measuring latency…")
@@ -271,18 +307,23 @@ def main() -> None:
     }
 
     # ------------------------------------------------------- determinism
-    print("checking build determinism…")
-    artifact2 = build_artifact(
-        whitebox,
-        feature_names,
-        np.median(X_train, axis=0),
-        monotone_quantile_bands(latent_train, y_train, n_bands=10),
-        calibration_latent=latent_train,
-        calibration_y=y_train,
-        X_sample=X_train[:500],
+    # The whole protocol, not just the build: a second run with the same seed
+    # must select the same configuration and compile the same integers.
+    print("checking selection determinism (a second full run)…")
+    again = compile_selected(
+        X,
+        y,
+        ceiling=ceiling,
+        ceiling_budget=budget,
+        reference="woe",
+        feature_names=feature_names,
+        seed=SEED,
     )
     results["determinism"] = {
-        "rebuild_hash_identical": artifact2["artifact_hash"] == artifact["artifact_hash"],
+        "rebuild_hash_identical": again.artifact["artifact_hash"] == unreported_hash,
+        "same_configuration_selected": again.selected["alpha"] == sel["alpha"]
+        and again.selected["n_estimators"] == sel["n_estimators"]
+        and again.selected["max_depth"] == sel["max_depth"],
     }
 
     out = HERE / "results.json"
@@ -291,8 +332,22 @@ def main() -> None:
 
     r, lat, art = results["retention"], results["latency"], results["artifact"]
     rows = [
-        ("Teacher Gini", f"{r['teacher_gini']}"),
-        ("Artifact Gini (integer)", f"{r['artifact_gini']} ({r['gini_retention_pct']}% retention)"),
+        (
+            "selected configuration (on Select)",
+            f"alpha={r['selected_alpha']}, {r['selected_trees']} trees, "
+            f"depth {r['selected_depth']}",
+        ),
+        ("Ceiling Gini (Report)", f"{r['teacher_gini']}"),
+        (
+            "Artifact Gini (integer, Report)",
+            f"{r['artifact_gini']} ({r['gini_retention_pct']}% retention, "
+            f"95% CI {r['retention_ci'][0]}–{r['retention_ci'][1]})",
+        ),
+        (
+            "Floor Gini (WoE logistic)",
+            f"{r['floor_gini']} (artifact at {r['floor_ratio_pct']}% of the floor, "
+            f"95% CI {r['floor_ratio_ci'][0]}–{r['floor_ratio_ci'][1]})",
+        ),
         (
             "Band-ordinal Gini",
             f"{r['band_ordinal_gini']} ({r['band_gini_retention_pct']}% retention)",
@@ -309,6 +364,10 @@ def main() -> None:
         ("band ladder only", f"{lat['band_ladder_median_us']} µs"),
         ("artifact size", f"{art['size_kb']} KB"),
         ("rebuild hash identical", f"{results['determinism']['rebuild_hash_identical']}"),
+        (
+            "same configuration selected on rerun",
+            f"{results['determinism']['same_configuration_selected']}",
+        ),
     ]
     print("| Metric | Value |")
     print("|---|---|")

@@ -186,7 +186,7 @@ Notes:
   source framework compares in float32 internally (XGBoost hist trees): the
   compiler stores float32-adjusted thresholds, and quantizing the inputs makes
   every conforming runtime reproduce the source model's routing exactly.
-  `"float64"` (the default, and always the case for distilled whiteboxes)
+  `"float64"` (the default, and always the case for whiteboxes from `train_whitebox`)
   means inputs are used as given.
 - Accumulation order is irrelevant (integer addition is associative), so
   parallel or reordered implementations remain bit-identical.

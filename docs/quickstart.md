@@ -8,12 +8,28 @@ Ten minutes from a fitted model to a verified, deployable decision artifact.
 pip install compileml
 ```
 
-## 1. Train a teacher, distill a whitebox
+## 1. Train a ceiling model, compile a whitebox
 
-Any strong model can be the teacher — its only job is to produce a
-probability-like latent. The whitebox is a small depth-2 gradient-boosted
-regressor fitted to that latent; depth 2 is what makes attribution *exact*
-(see [Exact attribution](concepts/attribution.md)).
+Any strong model can set the ceiling: it prices what compilation costs, and it
+may supply the whitebox's training target. The whitebox is a small depth-2
+gradient-boosted regressor; depth 2 is what makes attribution *exact* (see
+[Exact attribution](concepts/attribution.md)).
+
+The recommended path is one call, which selects the target (labels, the
+ceiling's predictions, or a blend), the tree count and the depth on rows it
+will not report on, and refits the winner:
+
+```python
+from compileml import compile_selected
+
+result = compile_selected(X, y, ceiling=lambda Xf, yf: teacher_factory(Xf, yf), reference="woe")
+artifact = result.artifact
+report = result.report()      # read once
+```
+
+See [the tuning guide](howto/tuning.md) for what it does and why. The rest of
+this page walks the same steps by hand, which is worth doing once to see what
+each one produces.
 
 ```python
 import numpy as np
