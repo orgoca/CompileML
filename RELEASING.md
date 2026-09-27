@@ -22,6 +22,21 @@ tokens stored anywhere.
    https://pypi.org/simple compileml` in a scratch venv, then
    `compileml --help` and a quick `import compileml`.
 
+## Refreshing the benchmark
+
+Run it on an idle machine — the millisecond figures belong to the laptop's state
+on the day — then let the script copy the numbers into the docs:
+
+```bash
+python benchmarks/run_benchmarks.py
+python benchmarks/sync_docs.py
+```
+
+Commit `benchmarks/results.json`, `benchmarks/selection_curve.json` and the
+documents the script touched together. Retention figures are deterministic
+and should not move between runs; if they do, something other than the
+machine changed.
+
 ## Releasing vX.Y.Z
 
 1. Bump `__version__` in `src/compileml/__init__.py` — the single source of

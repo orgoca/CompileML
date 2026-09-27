@@ -167,7 +167,7 @@ pip install -e .
 python benchmarks/run_benchmarks.py
 ```
 
-`results.json` records the CompileML version it measured, so a run against an older installed copy cannot pass for a measurement of the current code.
+`results.json` records the CompileML version it measured, so a run against an older installed copy cannot pass for a measurement of the current code. The table below and the cost figures elsewhere in the docs are written from that file by `python benchmarks/sync_docs.py`, never by hand.
 
 | Metric                                         |                                  Value |
 | ---------------------------------------------- | -------------------------------------: |

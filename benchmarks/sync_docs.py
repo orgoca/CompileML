@@ -14,7 +14,6 @@ once or the script stops.
 
 from __future__ import annotations
 
-import io
 import json
 import re
 from pathlib import Path
@@ -29,11 +28,13 @@ SWEEP_ROW = r"^\| {p} \| [0-9.]+ ms \| [0-9.]+ ms \| [0-9,]+ \| [0-9,]+ \|$"
 
 
 def read(path: Path) -> str:
-    return io.open(path, encoding="utf-8").read()
+    with open(path, encoding="utf-8") as f:
+        return f.read()
 
 
 def write(path: Path, text: str) -> None:
-    io.open(path, "w", encoding="utf-8", newline="\n").write(text)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
 
 
 def replace_once(text: str, pattern: str, replacement: str, where: str, flags=re.M) -> str:
@@ -42,18 +43,16 @@ def replace_once(text: str, pattern: str, replacement: str, where: str, flags=re
         raise SystemExit(
             f"{where}: expected exactly one match for {pattern!r}, found {len(matches)}"
         )
-    return re.sub(pattern, replacement, text, count=1, flags=flags)
+    return re.sub(pattern, lambda _: replacement, text, count=1, flags=flags)
 
 
 def readme_table(res: dict) -> str:
     r, lat, art, det = res["retention"], res["latency"], res["artifact"], res["determinism"]
     lo, hi = r["retention_ci"]
+    retained = f"{r['gini_retention_pct']:.1f}% retained ({lo:.1f}–{hi:.1f})"
     rows = [
         ("Ceiling Gini, 300-tree GBM", f"{r['teacher_gini']:.3f}"),
-        (
-            "**Compiled integer artifact Gini**",
-            f"**{r['artifact_gini']:.3f} — {r['gini_retention_pct']:.1f}% retained ({lo:.1f}–{hi:.1f})**",
-        ),
+        ("**Compiled integer artifact Gini**", f"**{r['artifact_gini']:.3f} — {retained}**"),
         (
             "Floor Gini, WoE logistic regression",
             f"{r['floor_gini']:.3f} — artifact at {r['floor_ratio_pct']:.1f}%",
