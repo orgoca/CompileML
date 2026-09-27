@@ -35,6 +35,7 @@ def train_whitebox(
     monotone_constraints=None,
     teacher_latent=None,
     sample_weight=None,
+    backend: str | None = None,
 ):
     """Fit a whitebox GBM to a target.
 
@@ -53,6 +54,14 @@ def train_whitebox(
     carrying column names). Any nonzero sign switches
     the backend to ``HistGradientBoostingRegressor``; ``None`` (or all
     zeros) keeps the classic ``GradientBoostingRegressor``.
+
+    ``backend`` overrides that choice: ``"hist"`` for
+    ``HistGradientBoostingRegressor`` and ``"gbr"`` for the classic
+    ``GradientBoostingRegressor``. The histogram backend is the one to use
+    at scale — it bins features and runs multithreaded, and was measured at
+    1–2 s where the classic backend took 18 s at 30k rows and 293 s at 300k
+    — but the default stays ``None`` (classic unless constrained) because
+    changing it would change every artifact built with the defaults.
 
     ``sample_weight`` — one non-negative weight per row — tells the fit where
     fidelity matters. A whitebox has a fixed budget and, unweighted, spends
@@ -97,7 +106,11 @@ def train_whitebox(
             raise ValueError("sample_weight must be finite, non-negative, and not all zero")
     feature_names = list(X.columns) if hasattr(X, "columns") else None
     cst = normalize_constraints(monotone_constraints, X_arr.shape[1], feature_names=feature_names)
-    if cst is not None:
+    if backend not in (None, "hist", "gbr"):
+        raise ValueError("backend must be None, 'hist' or 'gbr'")
+    if backend == "gbr" and cst is not None:
+        raise ValueError("monotone constraints need the 'hist' backend")
+    if cst is not None or backend == "hist":
         model = HistGradientBoostingRegressor(
             max_iter=n_estimators,
             max_depth=max_depth,

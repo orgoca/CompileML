@@ -175,6 +175,7 @@ def cmd_validate(args) -> int:
         X_val=X_val,
         y_val=y_val,
         require_full_reason_coverage=args.require_reasons,
+        require_selection_hygiene=args.require_selection_hygiene,
     )
     print(json.dumps(report, indent=2))
     return 0 if report["all_pass"] else 1
@@ -275,7 +276,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", help="output file (default: stdout)")
     p.set_defaults(func=cmd_scorecard)
 
-    p = sub.add_parser("validate", help="run the 10-check validation framework")
+    p = sub.add_parser("validate", help="run the validation framework")
+    p.add_argument(
+        "--require-selection-hygiene",
+        action="store_true",
+        help="fail check 11 when the provenance block records a broken selection protocol",
+    )
     p.add_argument("artifact")
     p.add_argument("--csv", help="validation CSV (features + outcome)")
     p.add_argument("--y-col", help="outcome column name in --csv")

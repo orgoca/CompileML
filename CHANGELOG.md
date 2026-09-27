@@ -7,6 +7,41 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Added
+- `compile_selected` ([#75](https://github.com/orgoca/CompileML/issues/75)):
+  the target and the configuration are chosen on data the report never sees.
+  Rows are split into Fit, Select and Report; the ceiling (the teacher) is
+  tuned once, frozen and refit K times for cross-fitted soft targets; every
+  (α, trees, depth, monotone) configuration is compiled on Fit and scored on
+  Select as an integer artifact; the simplest configuration statistically
+  tied with the best wins, preferring α = 1 as a governance prior; the floor
+  gates; the winner is refit on Fit ∪ Select; and `result.report()` reads
+  Report once, writing the figures into a hash-covered provenance block. Below
+  a configurable event count in Select, nested cross-validation takes over.
+  Whether the whitebox learns from the ceiling's probabilities or from the
+  labels is now a selected parameter, not an assumption.
+- `compileml.batch.score_batch`: the runtime's score path over a matrix, in
+  NumPy, asserted bit-identical to `decide()` on every row — 200,000 rows in
+  under a second. Selection ranks compiled artifacts with it; deployments
+  still use the runtime or an export.
+- Validation check 11, selection hygiene: reads the provenance block and
+  lists broken protocol — soft targets not cross-fitted, partitions that
+  overlap, Report read more than once. Advisory unless
+  `require_selection_hygiene=True`, following check 10.
+- `train_whitebox(backend="hist")` selects the histogram backend explicitly.
+  It was measured at 1–2 s where the classic backend took 18 s at 30k rows and
+  293 s at 300k; `compile_selected` uses it throughout. The default is
+  unchanged, since changing it would change every artifact built with the
+  defaults.
+- `extract_trees` passes an `ExtractedModel` through, so a boosted fit can be
+  extracted once and compiled from prefixes of its trees: the first k trees of
+  a fit are the k-tree model, verified for both backends.
+
+### Changed
+- `sweep_whitebox` warns when `alpha_grid` is not passed — its default of
+  pure distillation is the assumption real data falsified — and when `X_val`
+  is used both to choose and to report. The defaults switch in 1.0.
+
 ## [0.8.0] - 2026-09-13
 
 What compilation cost where decisions are made — and what to do about it.
