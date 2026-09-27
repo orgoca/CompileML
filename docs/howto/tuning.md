@@ -115,6 +115,7 @@ rows = sweep_whitebox(
     X_train, teacher_latent_train, y_train,
     trees_grid=(20, 40, 80, 160, 320),
     depth_grid=(1, 2),
+    alpha_grid=(0.0, 0.5, 1.0),         # the target is a choice; say which
     X_val=X_val, y_val=y_val, teacher_latent_val=teacher_latent_val,
 )
 # pandas.DataFrame(rows) if you like tables
@@ -470,8 +471,10 @@ two backends also regularize differently (histogram binning, leaf-size
 defaults), so do not guess the cost — measure it:
 
 ```python
-rows_free = sweep_whitebox(X, latent, y, X_val=Xv, y_val=yv, teacher_latent_val=lv)
-rows_mono = sweep_whitebox(X, latent, y, X_val=Xv, y_val=yv, teacher_latent_val=lv,
+rows_free = sweep_whitebox(X, latent, y, alpha_grid=(0.0, 1.0),
+                           X_val=Xv, y_val=yv, teacher_latent_val=lv)
+rows_mono = sweep_whitebox(X, latent, y, alpha_grid=(0.0, 1.0),
+                           X_val=Xv, y_val=yv, teacher_latent_val=lv,
                            monotone_constraints={"UTIL": +1, "TENURE": -1})
 ```
 

@@ -169,7 +169,7 @@ labels.
 It is still more work than scoring, but no longer dramatically so, and no
 longer quadratic in feature count. Attribution is aggregated per tree, which
 makes the cost `O(trees)` and independent of `p` — on the committed
-benchmark's 120-tree ensemble, 0.8–1.0 ms per row whether the model has
+benchmark's 120-tree ensemble, 0.6–0.7 ms per row whether the model has
 8 features or 100. More trees cost proportionally more; more features do not.
 
 That is real-time for credit decisioning, which is why
