@@ -177,11 +177,11 @@ python benchmarks/run_benchmarks.py
 | Band-ordinal Gini, 10 bands                    |                 0.643 — 96.7% retained |
 | Spearman correlation, ceiling vs. artifact     |                                  0.980 |
 | Selected on Select, of 40 configurations       |            α = 0.75, 80 trees, depth 2 |
-| Score + band + calibrated PD                   |                     **0.03 ms median** |
-| Score + band + calibrated PD, p95              |                                0.06 ms |
-| Full explained decision, 80 trees              |                         0.70 ms median |
-| Full explained decision, p95                   |                                1.20 ms |
-| Band assignment alone                          |                                 0.4 µs |
+| Score + band + calibrated PD                   |                     **0.02 ms median** |
+| Score + band + calibrated PD, p95              |                                0.03 ms |
+| Full explained decision, 80 trees              |                         0.42 ms median |
+| Full explained decision, p95                   |                                0.68 ms |
+| Band assignment alone                          |                                 0.2 µs |
 | Artifact size                                  |                                  70 KB |
 | Same configuration and identical hash on rerun |                                    Yes |
 
@@ -195,10 +195,10 @@ On the benchmark's 120-tree ensemble, attribution alone:
 
 | features | perturbation | per tree | tree walks, perturbation | tree walks, per tree |
 | -------: | -----------: | -------: | -----------------------: | -------------------: |
-| 8 | 1.23 ms | 0.76 ms | 4,560 | 792 |
-| 23 | 9.07 ms | 0.89 ms | 33,360 | 912 |
-| 50 | 47.97 ms | 0.94 ms | 153,240 | 944 |
-| 100 | 200.69 ms | 0.95 ms | 606,240 | 936 |
+| 8 | 0.94 ms | 0.60 ms | 4,560 | 792 |
+| 23 | 6.87 ms | 0.69 ms | 33,360 | 912 |
+| 50 | 34.01 ms | 0.74 ms | 153,240 | 944 |
+| 100 | 133.88 ms | 0.74 ms | 606,240 | 936 |
 
 The walk counts are exact and hold on any machine; the milliseconds belong to one laptop. Cost follows walks, and walks follow tree structure rather than width: the sweep's models are fitted to a target that uses every feature, so more of their trees split on three distinct features than the headline model's do, which is why attribution alone at 23 features here costs slightly more than the full decision in the table above. At eight features the difference between the two derivations is modest. At a hundred it is the difference between a quadratic cost and a flat one. It is exact rather than sampled, and both derivations reach identical integers on every timed row.
 
@@ -221,7 +221,8 @@ Both are measurable rather than guessable:
 ```python
 from compileml.tune import sweep_whitebox, sweep_bands
 
-sweep_whitebox(X, teacher_latent, y, X_val=X_val, y_val=y_val, teacher_latent_val=t_val)
+sweep_whitebox(X, teacher_latent, y, alpha_grid=(0.0, 0.5, 1.0),
+               X_val=X_val, y_val=y_val, teacher_latent_val=t_val)
 sweep_bands(latent, y, k_grid=(4, 6, 8, 10, 12, 16))
 ```
 

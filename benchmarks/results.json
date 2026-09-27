@@ -1,6 +1,6 @@
 {
   "seed": 42,
-  "compileml": "0.8.0",
+  "compileml": "0.9.0",
   "python": "3.14.3",
   "machine": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
   "os": "Windows 11",
@@ -48,36 +48,36 @@
     "n_test": 8000
   },
   "latency": {
-    "score_band_pd_median_ms": 0.034,
-    "score_band_pd_p95_ms": 0.062,
-    "full_explain_median_ms": 0.696,
-    "full_explain_p95_ms": 1.197,
-    "band_ladder_median_us": 0.4,
+    "score_band_pd_median_ms": 0.021,
+    "score_band_pd_p95_ms": 0.025,
+    "full_explain_median_ms": 0.416,
+    "full_explain_p95_ms": 0.679,
+    "band_ladder_median_us": 0.2,
     "explain_by_features": {
       "8": {
-        "per_tree_ms": 0.756,
-        "perturbation_ms": 1.232,
+        "per_tree_ms": 0.602,
+        "perturbation_ms": 0.935,
         "per_tree_walks": 792,
         "perturbation_walks": 4560,
         "features_split_on": 8
       },
       "23": {
-        "per_tree_ms": 0.889,
-        "perturbation_ms": 9.068,
+        "per_tree_ms": 0.692,
+        "perturbation_ms": 6.87,
         "per_tree_walks": 912,
         "perturbation_walks": 33360,
         "features_split_on": 23
       },
       "50": {
-        "per_tree_ms": 0.94,
-        "perturbation_ms": 47.965,
+        "per_tree_ms": 0.736,
+        "perturbation_ms": 34.007,
         "per_tree_walks": 944,
         "perturbation_walks": 153240,
         "features_split_on": 50
       },
       "100": {
-        "per_tree_ms": 0.954,
-        "perturbation_ms": 200.695,
+        "per_tree_ms": 0.744,
+        "perturbation_ms": 133.883,
         "per_tree_walks": 936,
         "perturbation_walks": 606240,
         "features_split_on": 88
@@ -90,12 +90,13 @@
       "measures": "attribution only, per row: median ms, and tree walks",
       "derivations_agree": true
     },
+    "measured_in": "a fresh process, after a 30 s rest following selection",
     "note": "pure-Python stdlib runtime, single row, 80 depth-2 trees at p=23. full_explain is the whole decide() payload: score, band, PD, exact attribution and reason codes. Attribution is aggregated per tree, so its cost is O(trees) and independent of feature count; explain_by_features times the attribution alone by both derivations, with tree walks per row as the machine-independent measure."
   },
   "artifact": {
     "size_kb": 70.2,
     "n_trees": 80,
-    "hash": "dcabaa0dd2e99ad0\u2026",
+    "hash": "465c984e8ed5ebdd\u2026",
     "exact_attribution": true
   },
   "determinism": {

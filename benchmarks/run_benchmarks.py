@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 import platform
 import statistics
+import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -120,7 +122,7 @@ def explain_cost_by_features() -> tuple[dict, dict]:
             "perturbation_walks": (2 + p + p * (p - 1) // 2) * len(split_sets),
             "features_split_on": len(set().union(*split_sets)),
         }
-        print(f"  p={p:>3}: {by_p[str(p)]}")
+        print(f"  p={p:>3}: {by_p[str(p)]}", file=sys.stderr)
 
     config = {
         "n_trees": SWEEP_TREES,
@@ -137,6 +139,69 @@ def median_p95(samples_ms: list[float]) -> tuple[float, float]:
         statistics.median(samples_ms),
         statistics.quantiles(samples_ms, n=20)[18],  # p95
     )
+
+
+def measure_latency(artifact_path: Path, rows_path: Path) -> dict:
+    """Single-row latency and the explanation-cost sweep, in a fresh interpreter.
+
+    Run as a child process after the selection phase. Selection refits the
+    ceiling with a multithreaded booster and compiles forty candidates; measured
+    in the same process straight afterwards, every single-threaded timing came
+    out 1.3-2.3x slower than the same artifact measured on its own, from
+    lingering worker threads and a hot CPU. A new process after a short rest
+    has neither.
+    """
+    artifact = load_artifact(artifact_path)
+    rows_test = [[float(v) for v in row] for row in np.load(rows_path)]
+    decisions = [decide(artifact, row, explain=False) for row in rows_test]
+
+    reps = 400
+    score_ms = []
+    for i in range(reps):
+        row = rows_test[i % len(rows_test)]
+        t0 = time.perf_counter()
+        decide(artifact, row, explain=False)
+        score_ms.append((time.perf_counter() - t0) * 1000)
+
+    explain_ms = []
+    for i in range(60):
+        row = rows_test[i % len(rows_test)]
+        t0 = time.perf_counter()
+        decide(artifact, row, explain=True)
+        explain_ms.append((time.perf_counter() - t0) * 1000)
+
+    edges = artifact["bands"]["edges_int"]
+    band_us = []
+    for i in range(reps):
+        latent_int = decisions[i % len(decisions)]["latent_int"]
+        t0 = time.perf_counter()
+        band_index(latent_int, edges)
+        band_us.append((time.perf_counter() - t0) * 1_000_000)
+
+    by_features, by_features_config = explain_cost_by_features()
+
+    n_trees = len(artifact["model"]["trees"])
+    p = len(artifact["features"]["names"])
+    s_med, s_p95 = median_p95(score_ms)
+    e_med, e_p95 = median_p95(explain_ms)
+    return {
+        "score_band_pd_median_ms": round(s_med, 3),
+        "score_band_pd_p95_ms": round(s_p95, 3),
+        "full_explain_median_ms": round(e_med, 3),
+        "full_explain_p95_ms": round(e_p95, 3),
+        "band_ladder_median_us": round(statistics.median(band_us), 2),
+        "explain_by_features": by_features,
+        "explain_by_features_config": by_features_config,
+        "measured_in": "a fresh process, after a 30 s rest following selection",
+        "note": (
+            f"pure-Python stdlib runtime, single row, {n_trees} depth-2 trees at "
+            f"p={p}. full_explain is the whole decide() payload: score, band, PD, "
+            "exact attribution and reason codes. Attribution is aggregated per "
+            "tree, so its cost is O(trees) and independent of feature count; "
+            "explain_by_features times the attribution alone by both derivations, "
+            "with tree walks per row as the machine-independent measure."
+        ),
+    }
 
 
 def main() -> None:
@@ -250,53 +315,22 @@ def main() -> None:
     )
 
     # ------------------------------------------------------------ latency
-    print("measuring latency…")
-    reps = 400
-    score_ms = []
-    for i in range(reps):
-        row = rows_test[i % len(rows_test)]
-        t0 = time.perf_counter()
-        decide(artifact, row, explain=False)
-        score_ms.append((time.perf_counter() - t0) * 1000)
-
-    explain_ms = []
-    for i in range(60):
-        row = rows_test[i % len(rows_test)]
-        t0 = time.perf_counter()
-        decide(artifact, row, explain=True)
-        explain_ms.append((time.perf_counter() - t0) * 1000)
-
-    edges = artifact["bands"]["edges_int"]
-    band_us = []
-    for i in range(reps):
-        latent_int = decisions[i % len(decisions)]["latent_int"]
-        t0 = time.perf_counter()
-        band_index(latent_int, edges)
-        band_us.append((time.perf_counter() - t0) * 1_000_000)
-
-    print("measuring explanation cost by feature count…")
-    by_features, by_features_config = explain_cost_by_features()
-
-    n_trees = len(artifact["model"]["trees"])
-    s_med, s_p95 = median_p95(score_ms)
-    e_med, e_p95 = median_p95(explain_ms)
-    results["latency"] = {
-        "score_band_pd_median_ms": round(s_med, 3),
-        "score_band_pd_p95_ms": round(s_p95, 3),
-        "full_explain_median_ms": round(e_med, 3),
-        "full_explain_p95_ms": round(e_p95, 3),
-        "band_ladder_median_us": round(statistics.median(band_us), 2),
-        "explain_by_features": by_features,
-        "explain_by_features_config": by_features_config,
-        "note": (
-            f"pure-Python stdlib runtime, single row, {n_trees} depth-2 trees at "
-            f"p={p}. full_explain is the whole decide() payload: score, band, PD, "
-            "exact attribution and reason codes. Attribution is aggregated per "
-            "tree, so its cost is O(trees) and independent of feature count; "
-            "explain_by_features times the attribution alone by both derivations, "
-            "with tree walks per row as the machine-independent measure."
-        ),
-    }
+    rows_path = HERE / "benchmark_rows.npy"
+    np.save(rows_path, X[parts.report])
+    print("resting 30 s, then measuring latency in a fresh process…")
+    time.sleep(30)
+    child = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), "--measure", str(path), str(rows_path)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    results["latency"] = json.loads(child.stdout.strip().splitlines()[-1])
+    rows_path.unlink()
+    for line in child.stderr.splitlines():
+        if line.startswith("  p="):
+            print(line)
 
     # ------------------------------------------------------------ artifact
     results["artifact"] = {
@@ -385,4 +419,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "--measure":
+        print(json.dumps(measure_latency(Path(sys.argv[2]), Path(sys.argv[3]))))
+    else:
+        main()

@@ -7,6 +7,30 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-27
+
+The teacher as yardstick, the target as a selected parameter.
+
+Distillation was the method. On real data it lost to the same whitebox
+trained on labels, so it is no longer assumed anywhere. `compile_selected`
+trains candidates on labels, on the ceiling's cross-fitted predictions and on
+blends; selects the target, tree count and depth on rows it will not report
+on; refits the winner on Fit ∪ Select; and reads Report once, writing the
+figures — and how they were produced — into the artifact's hashed provenance.
+The strongest model is the ceiling, a measuring instrument that prices
+compilation and never ships. The floor is reported at equal weight.
+
+The benchmark, run this way, selected a blend — α = 0.75, 80 trees, depth 2 —
+with both pure targets scoring lower on Select. It reports 98.04% retention on
+Report with a 95% interval of 97.38–98.72, and the artifact at 103.41% of a
+WoE logistic floor.
+
+A minor release: `compile_selected`, `compileml.batch.score_batch`,
+`train_whitebox(backend=)` and validation check 11 are new public API. The
+runtime, exporters and artifact schema are unchanged. Probability space and
+squared error only; the logit latent is gated on
+[#76](https://github.com/orgoca/CompileML/issues/76).
+
 ### Added
 - `compile_selected` ([#75](https://github.com/orgoca/CompileML/issues/75)):
   the target and the configuration are chosen on data the report never sees.
@@ -52,11 +76,13 @@ inside each artifact (`schema_version`).
   pipeline selects it". API names are unchanged.
 - The benchmark runs through `compile_selected`. It selected α = 0.75, 80 trees, depth 2 on Select — both pure targets scored lower — and reports 98.04% retention on Report with a 95% interval of 97.38–98.72%, against 97.9% before on a holdout that had also chosen the configuration; the artifact stands at 103.41% of a WoE logistic floor (interval 102.54–104.25%). The ceiling is now the histogram GBM (300 trees, depth 4, fixed and recorded as unsearched), so the whole run takes minutes. `results.json` gains the selected configuration, intervals, floor figures, KS, Brier and events per split, and drops `distill_spearman_train`; the selection curve is committed as `benchmarks/selection_curve.json`. The determinism check now reruns the entire protocol and requires the same configuration and the same hash.
 
-  The latency block was re-measured in the same run and every millisecond figure moved by
-  1.2–1.5× on models identical to 0.5.1's, with identical tree-walk counts, so the change is
-  the reference laptop's state on the day, not the code. The transcribed copies in the README,
-  the attribution page and the FAQ follow the committed file, as they must; the walk counts
-  are the machine-independent measure and are unchanged.
+  Latency is now measured in a fresh process after a 30 s rest. Selection refits the ceiling
+  with a multithreaded booster and compiles forty candidates, and timings taken in the same
+  process straight afterwards were 1.3–2.3× slower than the same artifact measured on its own,
+  from lingering worker threads and a hot CPU. On the cost sweep's models, identical to 0.5.1's
+  with identical tree-walk counts, the per-tree timings now come out at 0.94–0.98× the
+  0.5.1 figures. The transcribed copies in the README, the attribution page and the FAQ are
+  written from the committed file by `benchmarks/sync_docs.py`.
 
 ## [0.8.0] - 2026-09-13
 
