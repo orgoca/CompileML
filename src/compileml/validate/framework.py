@@ -25,6 +25,9 @@ Checks (each reports pass/skipped plus evidence):
   9. monotone_constraints      declared directions re-verified against the
                                shipped integer trees (skipped when the
                                artifact declares none)
+ 11. selection_hygiene         the provenance block, when present, records a
+                               protocol that was followed: cross-fitted soft
+                               targets, disjoint partitions, one Report read
  10. reference_floor           the artifact out-scores a reference model on
                                the same data — the floor that teacher
                                retention alone can never supply
@@ -75,6 +78,7 @@ def validate_artifact(
     require_full_reason_coverage: bool = False,
     reference=None,
     require_reference_floor: bool = False,
+    require_selection_hygiene: bool = False,
     seed: int = 42,
 ) -> dict:
     """Run the ten-check framework. Checks lacking inputs skip, not fail.
@@ -97,6 +101,12 @@ def validate_artifact(
         require_reference_floor: Make check 10 *fail* when the artifact does
             not clear the reference, rather than recording it as evidence
             (the ``max_within_band_auc`` precedent).
+        require_selection_hygiene: Make check 11 *fail* on a provenance
+            block that records a broken protocol — soft targets that were not
+            cross-fitted, partitions that overlap, Report read more than once
+            — rather than listing the issues as evidence. Check 11 skips when
+            the artifact carries no provenance block; it can verify what the
+            block records, not that the block is honest.
 
     Returns:
         {"all_pass": bool, "checks": {name: {"pass", "skipped", ...evidence}}}
@@ -371,4 +381,65 @@ def validate_artifact(
     else:
         checks["10_reference_floor"] = {"pass": True, "skipped": True}
 
+    # ------------------------------------------------ 11 selection hygiene
+    provenance = (artifact.get("metadata") or {}).get("provenance")
+    if provenance:
+        checks["11_selection_hygiene"] = _selection_hygiene(provenance, require_selection_hygiene)
+    else:
+        checks["11_selection_hygiene"] = {"pass": True, "skipped": True}
+
     return {"all_pass": all(c["pass"] for c in checks.values()), "checks": checks}
+
+
+def _selection_hygiene(provenance: dict, required: bool) -> dict:
+    """Check 11: does the provenance block record a protocol that was followed?
+
+    Issues fail the check when it is required; notes never do. The check reads
+    what ``compile_selected`` wrote and cannot verify it against data it does
+    not have, which is why it is advisory by default.
+    """
+    issues: list[str] = []
+    notes: list[str] = []
+    target = provenance.get("target") or {}
+    alpha = float(target.get("alpha", 1.0))
+    cross_fitted = (provenance.get("soft_targets") or {}).get("cross_fitted")
+    if alpha < 1.0:
+        if cross_fitted is True:
+            pass
+        elif cross_fitted == "user_asserted":
+            notes.append("soft-target cross-fitting is asserted by the user, not verified")
+        else:
+            issues.append(
+                "soft targets were not cross-fitted (alpha < 1 with in-sample ceiling predictions)"
+            )
+
+    parts = provenance.get("partitions") or {}
+    hashes = parts.get("content_hashes") or {}
+    if hashes and len(set(hashes.values())) != len(hashes):
+        issues.append("partition content hashes are not distinct")
+    if parts.get("row_id_overlap"):
+        issues.append(f"{parts['row_id_overlap']} row id(s) appear in more than one partition")
+    dup, threshold = parts.get("duplicate_fraction"), parts.get("duplicate_threshold")
+    if dup is not None and threshold is not None and dup > threshold:
+        issues.append(f"duplicate fraction {dup:.4f} exceeds threshold {threshold}")
+
+    report = provenance.get("report")
+    evaluations = report.get("evaluations") if report else None
+    if report is None:
+        issues.append("Report has not been evaluated: the artifact carries no reported figure")
+    elif evaluations != 1:
+        issues.append(f"Report was evaluated {evaluations} times; the protocol allows one")
+    elif parts.get("report_rows") is not None and report.get("rows") != parts.get("report_rows"):
+        issues.append("the reported row count does not match the Report partition")
+
+    return {
+        "pass": bool(not issues or not required),
+        "skipped": False,
+        "required": bool(required),
+        "alpha": alpha,
+        "cross_fitted": cross_fitted,
+        "report_evaluations": evaluations,
+        "duplicate_fraction": dup,
+        "issues": issues,
+        "notes": notes,
+    }

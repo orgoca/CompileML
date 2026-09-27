@@ -18,4 +18,15 @@ from compileml.runtime import decide, load_artifact, verify_artifact
 # `compileml_version` recorded inside every artifact can never disagree.
 __version__ = "0.8.0"
 
-__all__ = ["decide", "load_artifact", "verify_artifact", "__version__"]
+__all__ = ["compile_selected", "decide", "load_artifact", "verify_artifact", "__version__"]
+
+
+def __getattr__(name):
+    # compile_selected is learning-side (NumPy, scikit-learn). Importing it
+    # lazily keeps `import compileml` free of those dependencies, so the
+    # runtime story - copy compileml/runtime anywhere - stays true of the root.
+    if name == "compile_selected":
+        from compileml.select import compile_selected
+
+        return compile_selected
+    raise AttributeError(f"module 'compileml' has no attribute {name!r}")

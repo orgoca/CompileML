@@ -48,7 +48,7 @@ def sweep_whitebox(
     *,
     trees_grid=(10, 20, 40, 80, 160),
     depth_grid=(1, 2, 3),
-    alpha_grid=(0.0,),
+    alpha_grid=None,
     learning_rate: float = 0.2,
     random_state: int = 42,
     X_val=None,
@@ -102,6 +102,24 @@ def sweep_whitebox(
     weighted sweep beside an unweighted one shows what moving the budget buys
     one segment and costs the others.
     """
+    if alpha_grid is None:
+        warnings.warn(
+            "sweep_whitebox defaulted to pure distillation, alpha_grid=(0.0,), which real "
+            "data has falsified: a whitebox trained on labels has beaten the distilled one. "
+            "Pass alpha_grid explicitly (at least the endpoints (0.0, 1.0)), or use "
+            "compile_selected, which selects alpha on data it does not report on. The "
+            "default becomes (0.0, 0.5, 1.0) in 1.0.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        alpha_grid = (0.0,)
+    if X_val is not None:
+        warnings.warn(
+            "one holdout used both to choose a configuration and to report its retention "
+            "leaks: the figure chosen on it is optimistic. Keep it for choosing, and report "
+            "on rows never used to choose. compile_selected keeps Select and Report apart.",
+            stacklevel=2,
+        )
     X_arr = np.asarray(X, dtype=float)
     y_arr = np.asarray(y, dtype=int).reshape(-1)
     has_teacher = teacher_latent is not None

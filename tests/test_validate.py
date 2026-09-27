@@ -68,7 +68,9 @@ def test_all_checks_pass(fitted, reference):
         reference=reference,  # check 10 skips without one
     )
     assert report["all_pass"], {k: v for k, v in report["checks"].items() if not v["pass"]}
-    assert not any(c["skipped"] for c in report["checks"].values())
+    # Check 11 reads a provenance block that only compile_selected writes.
+    skipped = [k for k, c in report["checks"].items() if c["skipped"]]
+    assert skipped == ["11_selection_hygiene"]
     assert report["checks"]["8_reason_coverage"]["coverage"] == 1.0
     assert report["checks"]["9_monotone_constraints"]["constrained_features"] == ["x0", "x1", "x2"]
 

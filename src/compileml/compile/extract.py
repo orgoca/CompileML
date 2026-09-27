@@ -369,7 +369,15 @@ def _extract_lightgbm(model) -> ExtractedModel:
 
 
 def extract_trees(model) -> ExtractedModel:
-    """Extract a fitted model into float tree arrays; dispatches on family."""
+    """Extract a fitted model into float tree arrays; dispatches on family.
+
+    An :class:`ExtractedModel` passes through unchanged. That is what lets a
+    caller extract a boosted model once and build artifacts from prefixes of
+    its trees — the first ``k`` trees of a boosted fit *are* the ``k``-tree
+    model — without refitting.
+    """
+    if isinstance(model, ExtractedModel):
+        return model
     if _is_sklearn_hist(model):
         extracted = _extract_sklearn_hist(model)
         validate_extraction(extracted, model)
