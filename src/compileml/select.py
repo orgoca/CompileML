@@ -37,6 +37,7 @@ from compileml.artifact import build_artifact
 from compileml.bands import monotone_quantile_bands
 from compileml.batch import score_batch
 from compileml.compile import extract_trees, train_whitebox
+from compileml.compile.distill import refuse_missing_values
 from compileml.reference import fit_reference
 from compileml.runtime.io import canonical_hash
 
@@ -663,6 +664,7 @@ def compile_selected(
     )
     if len(names) != X_arr.shape[1]:
         raise ValueError("feature_names length does not match X")
+    refuse_missing_values(X_arr, names)  # before the ceiling spends its budget
     notes: list[str] = []
 
     # ---------------------------------------------------------- partitions
@@ -693,7 +695,10 @@ def compile_selected(
             f"{duplicates} rows in Select or Report ({dup_fraction:.1%}) have content "
             "identical to a "
             f"row in an earlier partition, above duplicate_threshold={duplicate_threshold}. "
-            "Repeat applicants? Pass group= so each lands in one partition."
+            "If the same entity appears more than once, pass group= so each lands in one "
+            "partition. If different entities share identical rows by construction — a "
+            "no-record code in every feature, say — nothing leaks: raise duplicate_threshold "
+            f"above {dup_fraction:.3f}."
         )
 
     # ------------------------------------------------------------- ceiling

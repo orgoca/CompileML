@@ -7,6 +7,43 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-27
+
+Missing values are refused instead of mis-compiled. No change to the runtime,
+the exporters, the artifact schema, or any artifact built from data without
+missing values; the benchmark does not move.
+
+The histogram backend trains on NaN and learns, at every split, which way
+missing values go. It is used whenever monotone constraints are declared
+(since 0.2.0) and by `compile_selected` by default. The artifact has no
+missing-value branch; it imputes the baseline. So the model and the artifact
+scored rows with missing values differently, and nothing said so. On top of
+that, `compile_selected` took the baseline as `np.median`, which is NaN for
+any column with a missing value. The artifact then carried a NaN baseline,
+which is not valid JSON, and sent NaN through tree comparisons, which the
+specification forbids (§8).
+
+### Fixed
+- `train_whitebox` refuses NaN in `X` on every backend, naming the columns.
+  The classic backend already refused it, with scikit-learn's message; the
+  histogram backend accepted it. The message gives the fix: impute, and add a
+  0/1 missing-indicator column, which becomes an ordinary feature with its
+  own splits and reason code.
+- `compile_selected` refuses NaN before the ceiling spends its budget.
+- `build_artifact` refuses a non-finite baseline, and a split at a non-finite
+  threshold (a split at infinity separates missing values from every
+  observed value).
+- Extraction refuses a histogram-boosting model that learned missing-value
+  routing. Every such split records a direction, learned or not, so the old
+  note fired on nearly every model and proved nothing; it is gone. Without
+  NaN at fit time, scikit-learn sends missing values to the larger child, so
+  a split whose direction contradicts its counts can only have seen NaN, and
+  that is now an error.
+- The duplicate check's message named only one cause, repeat applicants
+  (`group=`). It now also names rows that are identical by construction
+  across different entities, such as a no-record code in every feature,
+  where nothing leaks and the fix is to raise `duplicate_threshold`.
+
 ## [0.9.0] - 2026-09-27
 
 The teacher as yardstick, the target as a selected parameter.

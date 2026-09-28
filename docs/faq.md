@@ -148,6 +148,14 @@ By declared policy inside the artifact: `"baseline"` re-applies the
 training-time imputation at decision time; `"reject"` refuses the row.
 NaN never routes silently through a tree comparison, in any runtime.
 
+The artifact has no missing-value branch, so the model it compiles must not
+have learned one either. `train_whitebox` and `compile_selected` refuse NaN
+in `X`. `build_artifact` refuses a non-finite baseline or split threshold,
+and a histogram-boosting model whose splits show it was trained on NaN.
+When missingness carries information, impute the column and
+add a 0/1 missing-indicator column. The indicator is an ordinary feature, so
+it gets its own splits and its own reason code.
+
 ## Is the artifact hash a signature?
 
 No — it is an integrity check. Loaders verify it by default and refuse a

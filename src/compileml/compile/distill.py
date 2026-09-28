@@ -23,6 +23,30 @@ from sklearn.ensemble import GradientBoostingRegressor, HistGradientBoostingRegr
 from compileml.compile.monotone import normalize_constraints
 
 
+def refuse_missing_values(X_arr: np.ndarray, feature_names=None) -> None:
+    """Raise if ``X_arr`` holds NaN.
+
+    The histogram backend trains on NaN and learns a direction for missing
+    values at every split, but the compiled artifact has no missing-value
+    branch: it imputes the baseline instead. The model and the artifact
+    would then score the same row differently, silently. The classic backend
+    already refused NaN; this makes both refuse it, with the fix in the
+    message.
+    """
+    missing = np.isnan(X_arr)
+    if not missing.any():
+        return
+    cols = np.flatnonzero(missing.any(axis=0))
+    named = [str(feature_names[j]) if feature_names is not None else int(j) for j in cols]
+    shown = named[:10] + (["..."] if len(named) > 10 else [])
+    raise ValueError(
+        f"X has missing values (NaN) in {len(cols)} column(s): {shown}. The compiled "
+        "artifact has no missing-value branch, so a whitebox trained on NaN would score "
+        "missing values one way and the artifact another. Impute these columns and add a "
+        "0/1 missing-indicator column for each before training."
+    )
+
+
 def train_whitebox(
     X,
     target=None,
@@ -73,6 +97,9 @@ def train_whitebox(
     outcomes. The returned fidelity metrics stay unweighted. Weighting cannot
     create an effect depth 2 cannot express — a segment-only interaction is
     three-way — see the tuning guide.
+
+    Missing values (NaN) in ``X`` are refused on every backend; see
+    :func:`refuse_missing_values`.
     """
     if teacher_latent is not None:
         if target is not None:
@@ -96,6 +123,8 @@ def train_whitebox(
         )
 
     X_arr = np.asarray(X, dtype=float)
+    feature_names = list(X.columns) if hasattr(X, "columns") else None
+    refuse_missing_values(X_arr, feature_names)
     y = np.asarray(target, dtype=float).reshape(-1)
     weights = None
     if sample_weight is not None:
@@ -104,7 +133,6 @@ def train_whitebox(
             raise ValueError("sample_weight must have one weight per row")
         if (weights < 0).any() or not np.isfinite(weights).all() or weights.sum() <= 0:
             raise ValueError("sample_weight must be finite, non-negative, and not all zero")
-    feature_names = list(X.columns) if hasattr(X, "columns") else None
     cst = normalize_constraints(monotone_constraints, X_arr.shape[1], feature_names=feature_names)
     if backend not in (None, "hist", "gbr"):
         raise ValueError("backend must be None, 'hist' or 'gbr'")
