@@ -141,7 +141,8 @@ def test_content_duplicates_are_counted_and_thresholded(data):
     y_dup = y.copy()
     y_dup[parts.report[:100]] = y[parts.fit[:100]]
     assert duplicate_rows(row_content_hashes(X_dup, y_dup), parts) == 100
-    with pytest.raises(ValueError, match="identical"):
+    # both causes are named: repeat entities (group=) and identical-by-construction rows
+    with pytest.raises(ValueError, match=r"identical.*group=.*raise duplicate_threshold above"):
         compile_selected(
             X_dup,
             y_dup,

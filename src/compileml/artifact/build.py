@@ -155,11 +155,28 @@ def build_artifact(
     base_vals = [float(b) for b in np.asarray(baseline, dtype=float).reshape(-1)]
     if len(names) != len(base_vals):
         raise ValueError("feature_names and baseline must have the same length")
+    bad_base = [names[j] for j, b in enumerate(base_vals) if not np.isfinite(b)]
+    if bad_base:
+        raise ValueError(
+            f"baseline is not finite for {bad_base}. The baseline is the value imputed "
+            "for missing inputs and the reference point of every attribution, so it must "
+            "be a real number; np.nanmedian skips missing values when computing medians."
+        )
 
     # --- extract + quantize -------------------------------------------------
     extracted = extract_trees(model)
     if extracted.n_features and extracted.n_features != len(names):
         raise ValueError(f"model expects {extracted.n_features} features, got {len(names)} names")
+    for t_idx, tree in enumerate(extracted.trees):
+        for f, thr in zip(tree["feature"], tree["threshold"]):
+            if f >= 0 and not np.isfinite(thr):
+                raise ValueError(
+                    f"tree {t_idx} splits {names[f]!r} at a non-finite threshold ({thr}). "
+                    "A split at infinity separates missing values from every observed "
+                    "value: the source model learned a missing-value routing the artifact "
+                    "cannot represent. Impute the column, add a 0/1 missing-indicator "
+                    "column, and retrain."
+                )
     if threshold_decimals is not None:
         # Quantize split thresholds for decimal-arithmetic targets (spec §11).
         # Every runtime — Python included — then compares identical values;

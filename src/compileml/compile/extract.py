@@ -160,6 +160,11 @@ def _extract_sklearn_hist(model) -> ExtractedModel:
     drift). Leaf values arrive pre-shrunk, so ``learning_rate`` is 1.0;
     the base is ``_baseline_prediction``. Thresholds are float64 and the
     split convention is ``x <= threshold -> left``, matching ours.
+
+    Every HGB split records a missing-value direction, learned or not, so
+    the flag alone proves nothing. A model trained on NaN is refused when a
+    split's direction contradicts sklearn's default (the larger child) or
+    its threshold is infinite; either can only come from NaN at fit time.
     """
     n_features = int(model.n_features_in_)
     is_cat = getattr(model, "is_categorical_", None)
@@ -172,7 +177,7 @@ def _extract_sklearn_hist(model) -> ExtractedModel:
             "encode categoricals numerically before distilling"
         )
     trees = []
-    missing_right_nodes = 0
+    learned_missing: dict[int, int] = {}
     for predictors in model._predictors:
         if len(predictors) != 1:
             raise ValueError("multi-output HistGradientBoosting models are not supported")
@@ -197,8 +202,14 @@ def _extract_sklearn_hist(model) -> ExtractedModel:
             threshold[i] = float(node["num_threshold"])
             left[i] = int(node["left"])
             right[i] = int(node["right"])
-            if not bool(node["missing_go_to_left"]):
-                missing_right_nodes += 1
+            # Without NaN at fit time, HGB sends missing values to the child
+            # with more samples. A split that disagrees with its counts, or
+            # sits at infinity (missing vs every observed value), saw NaN.
+            majority_left = nodes[left[i]]["count"] > nodes[right[i]]["count"]
+            if bool(node["missing_go_to_left"]) != bool(majority_left) or not np.isfinite(
+                threshold[i]
+            ):
+                learned_missing[feature[i]] = learned_missing.get(feature[i], 0) + 1
         trees.append(
             {
                 "feature": feature,
@@ -208,17 +219,16 @@ def _extract_sklearn_hist(model) -> ExtractedModel:
                 "value": value,
             }
         )
-    notes: list[str] = []
-    if missing_right_nodes:
-        # Unlike XGBoost, HGB records a routing direction on every split even
-        # when training saw no NaN, so this is a note, not a warning: the
-        # artifact has no missing branch either way — missing_policy governs.
-        notes.append(
-            f"{missing_right_nodes} split(s) route missing values right in the source "
-            "model; the artifact has no missing branch (missing_policy governs)."
+    if learned_missing:
+        raise ValueError(
+            f"the model was trained on missing values: {sum(learned_missing.values())} "
+            f"split(s) on feature index(es) {sorted(learned_missing)} route NaN the way "
+            "training learned. The artifact has no missing-value branch — it imputes the "
+            "baseline — so it would score those rows differently from the model. Impute "
+            "these columns, add a 0/1 missing-indicator column for each, and retrain."
         )
     base = float(np.ravel(model._baseline_prediction)[0])
-    return ExtractedModel(trees, base, 1.0, "sklearn_hist", "float64", n_features, notes)
+    return ExtractedModel(trees, base, 1.0, "sklearn_hist", "float64", n_features)
 
 
 # ---------------------------------------------------------------------------
