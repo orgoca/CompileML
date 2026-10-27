@@ -55,6 +55,7 @@ nav:
   - How-to:
       - Tuning the compilation: howto/tuning.md
       - Reason codes: howto/reason-codes.md
+      - Weight-of-evidence inputs: howto/woe.md
       - Visualize decisions: howto/visualize.md
       - Zero-churn recalibration: howto/recalibrate.md
       - Deploy (runtime, SQL, COBOL): howto/deploy.md

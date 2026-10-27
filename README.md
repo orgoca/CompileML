@@ -389,6 +389,7 @@ src/compileml/runtime/
 * [Tuning the compilation](docs/howto/tuning.md)
 * [Artifact specification](docs/ARTIFACT_SPEC.md)
 * [Reason codes](docs/howto/reason-codes.md)
+* [Weight-of-evidence inputs](docs/howto/woe.md)
 * [Recalibration without band churn](docs/howto/recalibrate.md)
 * [Deploying to Python, SQL, and COBOL](docs/howto/deploy.md)
 * [Validation framework](docs/howto/validate.md)

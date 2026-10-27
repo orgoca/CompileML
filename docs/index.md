@@ -27,6 +27,7 @@ model  ──compile──►  decision.json  ──runs on──►  stdlib Pyt
 - Want the exact rules → [Artifact specification](ARTIFACT_SPEC.md)
 - "Why should I believe the determinism claim?" → [Determinism](concepts/determinism.md)
 - Writing reason codes — adverse-action notices, alert reasons → [Reason codes](howto/reason-codes.md)
+- Feeding it WOE-transformed features → [Weight-of-evidence inputs](howto/woe.md)
 - Model risk / validation team → [Validate before deploying](howto/validate.md)
 
 ## The design in one paragraph

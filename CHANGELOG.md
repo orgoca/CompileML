@@ -7,6 +7,12 @@ inside each artifact (`schema_version`).
 
 ## [Unreleased]
 
+### Documentation
+
+- A how-to for weight-of-evidence inputs (`docs/howto/woe.md`): what the artifact
+  holds, bands, reason dictionaries, monotone signs and missing bins, each
+  pinned by `tests/test_woe_inputs.py`.
+
 ## [0.9.2] - 2026-10-11
 
 The WoE floor no longer ignores rare 0/1 columns. No change to the runtime,
